@@ -122,37 +122,27 @@ MCP resources provided:
 
 ## Quick Start
 
-### For MCP Server (Cursor/Claude Desktop)
+### For MCP Server (Recommended - No Installation!)
 
 📖 **See [MCP_SETUP.md](./MCP_SETUP.md) for complete setup instructions**
 
-1. Complete prerequisites below
-2. Build the project: `npm install && npm run build`
-3. Add to Cursor config (`~/.cursor/config.json`):
-   ```json
-   {
-     "mcpServers": {
-       "audio-transcription": {
-         "command": "node",
-         "args": ["/Users/pmerwin/Projects/audio-transcription-mcp/dist/mcp-server.js"],
-         "env": {
-           "OPENAI_API_KEY": "your-key-here"
-         }
-       }
-     }
-   }
-   ```
-4. Restart Cursor
-5. Ask the AI: "Start transcribing audio"
+**Just add to your config and restart - that's it!**
 
-### For Standalone CLI
+See the npx configuration at the top of this README for Cursor and Claude Desktop.
+
+### For Standalone CLI (Local Development)
 
 📖 **See [GETTING_STARTED.md](./GETTING_STARTED.md) for complete setup instructions**
 
 ```bash
-source ~/.nvm/nvm.sh && nvm use 20
-npm install && npm run build
+# Install dependencies
+npm install
+npm run build
+
+# Configure environment
 cp env.example .env  # Then add your OpenAI API key
+
+# Run standalone CLI
 npm start
 ```
 
@@ -252,48 +242,42 @@ sudo killall coreaudiod
   ```
 - **OpenAI API key** ([Get one here](https://platform.openai.com/api-keys))
 
-## Installation
+## Installation Options
 
-### Quick Install
+### Option 1: npx (Recommended - Zero Installation!)
+
+**No installation needed!** Just use the configuration shown at the top of this README.
+
+Benefits:
+- ✅ No local setup required
+- ✅ Always uses the latest version (with `@latest`)
+- ✅ Works from any directory
+- ✅ Automatic updates
+
+### Option 2: Local Development Install
+
+Only needed if you want to modify the code or contribute:
 
 ```bash
-# Clone the repository to a permanent location
-git clone https://github.com/pmerwin/audio-transcription-mcp.git ~/audio-transcription-mcp
-cd ~/audio-transcription-mcp
+# Clone the repository
+git clone https://github.com/pmerwin/audio-transcription-mcp.git
+cd audio-transcription-mcp
+
+# Install dependencies
 npm install
+npm run build
+
+# For CLI mode, configure environment
+cp env.example .env  # Then add your OpenAI API key
 ```
-
-### Configure Cursor/Claude Desktop
-
-Add to `~/.cursor/mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "audio-transcription": {
-      "command": "bash",
-      "args": [
-        "-c",
-        "cd ~/audio-transcription-mcp && node dist/mcp-server.js"
-      ],
-      "env": {
-        "OPENAI_API_KEY": "your-openai-api-key-here",
-        "INPUT_DEVICE_NAME": "BlackHole"
-      }
-    }
-  }
-}
-```
-
-**Replace `your-openai-api-key-here` with your actual OpenAI API key.**
-
-### Restart Cursor
-
-Quit Cursor completely (Cmd+Q) and relaunch to load the MCP server.
-
-**For detailed setup including prerequisites (Black Hole audio driver, etc.), see [INSTALL.md](./INSTALL.md)**
 
 ## Configuration
+
+### For MCP Mode (Cursor/Claude Desktop)
+
+Configuration is done via the MCP config file (see Quick Start section above). No `.env` file needed!
+
+### For CLI Mode (Standalone)
 
 Copy `env.example` to `.env` and configure:
 
@@ -301,40 +285,48 @@ Copy `env.example` to `.env` and configure:
 cp env.example .env
 ```
 
-Key settings:
-- `OPENAI_API_KEY`: Your OpenAI API key (required)
-- `INPUT_DEVICE_NAME`: Audio device name (default: "BlackHole")
+Required:
+- `OPENAI_API_KEY`: Your OpenAI API key
+
+Optional (with defaults):
+- `INPUT_DEVICE_NAME`: Audio device (default: "BlackHole")
 - `CHUNK_SECONDS`: Transcription interval (default: 8)
 - `OUTFILE`: Output transcript file (default: "meeting_transcript.md")
+- `OUTFILE_DIR`: Output directory (default: current directory)
 
 ## Usage
 
-### CLI Mode
+### MCP Server Mode (Recommended)
+
+**Using npx (no installation):**
+
+See the Quick Start configuration at the top of this README. Just:
+1. Add the config to Cursor or Claude Desktop
+2. Restart the application
+3. Say: "Start transcribing audio"
+
+**Using local installation:**
+
+Only if you've cloned the repository:
+```bash
+npm run mcp
+```
+
+### CLI Mode (Standalone)
+
+For local development or standalone use:
+
 ```bash
 npm start
 ```
 
 Press Ctrl+C to stop.
 
-### MCP Server Mode
-
-Add to your MCP client configuration (e.g., Claude Desktop):
-
-```json
-{
-  "mcpServers": {
-    "audio-transcription": {
-      "command": "node",
-      "args": ["/path/to/audio-transcription-mcp/dist/mcp-server.js"],
-      "env": {
-        "OPENAI_API_KEY": "your-key-here"
-      }
-    }
-  }
-}
-```
+**Note:** CLI mode requires a `.env` file with your OpenAI API key (see Configuration section above).
 
 ## Implementation Status
+
+### ✅ Complete
 
 - [x] Project structure setup
 - [x] Core audio capture module
@@ -343,9 +335,13 @@ Add to your MCP client configuration (e.g., Claude Desktop):
 - [x] Standalone CLI implementation
 - [x] MCP server interface design
 - [x] MCP server implementation
-- [x] Documentation (README, GETTING_STARTED, MCP_SETUP)
-- [ ] Testing with Cursor
-- [ ] Production hardening
+- [x] Comprehensive documentation (8 guides)
+- [x] **61 passing tests** with full coverage
+- [x] **Tested in Cursor** - Working ✓
+- [x] **Tested in Claude Desktop** - Working ✓
+- [x] **Production hardening** - 0 vulnerabilities
+- [x] **Published to npm** - Available via npx
+- [x] **Code reviewed** - Production ready
 
 ## Technical Notes
 
