@@ -160,24 +160,97 @@ npm start
 
 ### macOS Audio Setup
 
-1. **Install BlackHole** (virtual audio device)
-   ```bash
-   brew install blackhole-2ch
-   ```
+#### 1. Install BlackHole Audio Driver
 
-2. **Configure Multi-Output Device** (in Audio MIDI Setup)
-   - Open "Audio MIDI Setup" app
-   - Click "+" → "Create Multi-Output Device"
-   - Check both your speakers and BlackHole
-   - This allows you to hear audio while capturing it
+BlackHole is a virtual audio device that allows capturing system audio on macOS.
 
-3. **Set System Audio Output** to the Multi-Output Device
+```bash
+brew install blackhole-2ch
+```
+
+**Verify installation:**
+```bash
+# List audio devices to confirm BlackHole is installed
+ffmpeg -f avfoundation -list_devices true -i ""
+# You should see "BlackHole 2ch" in the audio devices list
+```
+
+#### 2. Configure Multi-Output Device
+
+This step allows you to **hear audio while capturing it** (otherwise, all audio would be silent while transcribing).
+
+**Step-by-step:**
+
+1. **Open Audio MIDI Setup**
+   - Location: `/Applications/Utilities/Audio MIDI Setup.app`
+   - Or use Spotlight: Press `Cmd+Space`, type "Audio MIDI Setup"
+
+2. **Create Multi-Output Device**
+   - Click the **"+"** button in the bottom-left corner
+   - Select **"Create Multi-Output Device"**
+
+3. **Configure Outputs**
+   - ✅ Check your **built-in speakers** (or external speakers/headphones)
+   - ✅ Check **BlackHole 2ch**
+   - **Important:** Order matters! Your speakers should be listed first
+
+4. **Set Primary Device** (Optional but recommended)
+   - Right-click on your speakers in the list
+   - Select **"Use This Device For Sound Output"**
+   - This ensures clock sync to your main audio device
+
+5. **Rename Device** (Optional but helpful)
+   - Double-click "Multi-Output Device"
+   - Rename to something memorable like "Speakers + BlackHole"
+
+#### 3. Set System Audio Output
+
+**Option A: System Settings (macOS 13+)**
+1. Open **System Settings** → **Sound**
+2. Under **Output**, select your **Multi-Output Device** (or "Speakers + BlackHole")
+
+**Option B: Menu Bar (Quick access)**
+1. Hold **Option** key and click the **volume icon** in menu bar
+2. Select your Multi-Output Device under "Output Device"
+
+**Verify it's working:**
+- Play some audio (YouTube, music, etc.)
+- You should hear it through your speakers
+- The transcription will capture it through BlackHole
+
+#### 4. Troubleshooting BlackHole
+
+**No audio after setup?**
+- Make sure your speakers are checked in the Multi-Output Device
+- Ensure speakers are listed BEFORE BlackHole in the device list
+- Try setting speakers as the "primary device" (right-click → Use This Device)
+
+**BlackHole not showing up?**
+```bash
+# Reinstall BlackHole
+brew reinstall blackhole-2ch
+
+# Restart Core Audio (if needed)
+sudo killall coreaudiod
+```
+
+**Audio quality issues?**
+- Check that sample rates match (usually 48000 Hz)
+- In Audio MIDI Setup, select your Multi-Output Device
+- Set Format to **48000.0 Hz, 2 ch, 24-bit**
 
 ### Software Requirements
 
-- Node.js 20+
-- ffmpeg: `brew install ffmpeg`
-- OpenAI API key
+- **Node.js 20+** (install via [nvm](https://github.com/nvm-sh/nvm))
+  ```bash
+  nvm install 20
+  nvm use 20
+  ```
+- **ffmpeg** (with AVFoundation support)
+  ```bash
+  brew install ffmpeg
+  ```
+- **OpenAI API key** ([Get one here](https://platform.openai.com/api-keys))
 
 ## Installation
 
