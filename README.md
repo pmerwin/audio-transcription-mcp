@@ -124,32 +124,44 @@ npm start
 
 ## Installation
 
-### Quick Install (Recommended)
+### Quick Install
 
 ```bash
-# Clone the repository
-git clone https://github.com/pmerwin/audio-transcription-mcp.git
-cd audio-transcription-mcp
+# Clone the repository to a permanent location
+git clone https://github.com/pmerwin/audio-transcription-mcp.git ~/audio-transcription-mcp
+cd ~/audio-transcription-mcp
 npm install
 ```
 
-Then add to `~/.cursor/mcp.json` (update the path):
+### Configure Cursor/Claude Desktop
+
+Add to `~/.cursor/mcp.json`:
 
 ```json
 {
   "mcpServers": {
     "audio-transcription": {
       "command": "bash",
-      "args": ["-c", "cd /path/to/audio-transcription-mcp && node dist/mcp-server.js"],
+      "args": [
+        "-c",
+        "cd ~/audio-transcription-mcp && node dist/mcp-server.js"
+      ],
       "env": {
-        "OPENAI_API_KEY": "your-key-here"
+        "OPENAI_API_KEY": "your-openai-api-key-here",
+        "INPUT_DEVICE_NAME": "BlackHole"
       }
     }
   }
 }
 ```
 
-**For detailed installation instructions and prerequisites, see [INSTALL.md](./INSTALL.md)**
+**Replace `your-openai-api-key-here` with your actual OpenAI API key.**
+
+### Restart Cursor
+
+Quit Cursor completely (Cmd+Q) and relaunch to load the MCP server.
+
+**For detailed setup including prerequisites (Black Hole audio driver, etc.), see [INSTALL.md](./INSTALL.md)**
 
 ## Configuration
 
