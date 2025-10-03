@@ -29,8 +29,8 @@ export class TranscriptionSession {
         if (this.status.isRunning) {
             throw new Error("Session is already running");
         }
-        // Initialize transcript file
-        this.transcriptManager.initialize();
+        // Clear and initialize transcript file (always start fresh)
+        this.transcriptManager.clear();
         // Verify API key is valid
         console.log(`[${timestamp()}] Verifying OpenAI API key...`);
         const isValid = await this.transcriptionService.healthCheck();

@@ -77,6 +77,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Approximately $0.36 per hour of transcription
 - No subscription fees
 
+## [0.1.1] - 2025-10-03
+
+### Fixed
+- Fixed transcript bleeding issue where new transcription sessions would append to previous transcripts instead of starting fresh
+- Now always clears and reinitializes transcript file when starting a new session
+
 ## [Unreleased]
 
 ### Planned Features

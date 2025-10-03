@@ -32,3 +32,4 @@ meeting_transcript.md
 # Test coverage
 coverage/
 .nyc_output/
+build-bundle.js
