@@ -1,0 +1,42 @@
+# Development files
+src/
+tsconfig.json
+.env
+.env.example
+
+# Testing
+test/
+tests/
+*.test.ts
+*.spec.ts
+
+# Build artifacts
+*.tsbuildinfo
+
+# Documentation (keep README.md)
+GETTING_STARTED.md
+MCP_SETUP.md
+TESTING.md
+IMPLEMENTATION_PLAN.md
+
+# Temporary files
+meeting_transcript.md
+*.log
+.DS_Store
+
+# Version control
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.cursor/
+.idea/
+
+# Package manager
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+

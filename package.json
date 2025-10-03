@@ -1,0 +1,54 @@
+{
+  "name": "audio-transcription-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for real-time audio transcription using OpenAI Whisper",
+  "type": "module",
+  "main": "dist/mcp-server.js",
+  "bin": {
+    "audio-transcription-cli": "dist/cli.js",
+    "audio-transcription-mcp": "dist/mcp-server.js"
+  },
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/cli.js",
+    "mcp": "node dist/mcp-server.js",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "audio",
+    "transcription",
+    "whisper",
+    "openai",
+    "real-time",
+    "speech-to-text",
+    "cursor",
+    "claude"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pmerwin/audio-transcription-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/pmerwin/audio-transcription-mcp/issues"
+  },
+  "homepage": "https://github.com/pmerwin/audio-transcription-mcp#readme",
+  "author": "Phil Merwin",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.19.1",
+    "dotenv": "^16.4.7",
+    "openai": "^4.77.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  }
+}

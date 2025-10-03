@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+
+# Environment files
+.env
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+meeting_transcript.md
+*.tmp
+.cursor/
+
+# Build info (keep dist/ for npm install)
+*.tsbuildinfo
+
+# Test coverage
+coverage/
+.nyc_output/
