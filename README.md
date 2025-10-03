@@ -124,22 +124,32 @@ npm start
 
 ## Installation
 
-### Install from GitHub (Recommended)
+### Quick Install (Recommended)
 
 ```bash
-npm install -g git+https://github.com/pmerwin/audio-transcription-mcp.git
-```
-
-### Install from Source
-
-```bash
+# Clone the repository
 git clone https://github.com/pmerwin/audio-transcription-mcp.git
 cd audio-transcription-mcp
 npm install
-npm run build
 ```
 
-**For detailed installation instructions, see [INSTALL.md](./INSTALL.md)**
+Then add to `~/.cursor/mcp.json` (update the path):
+
+```json
+{
+  "mcpServers": {
+    "audio-transcription": {
+      "command": "bash",
+      "args": ["-c", "cd /path/to/audio-transcription-mcp && node dist/mcp-server.js"],
+      "env": {
+        "OPENAI_API_KEY": "your-key-here"
+      }
+    }
+  }
+}
+```
+
+**For detailed installation instructions and prerequisites, see [INSTALL.md](./INSTALL.md)**
 
 ## Configuration
 
