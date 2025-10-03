@@ -11,14 +11,23 @@
 
 ### Install via npm from GitHub
 
+**Recommended Method:**
+
 ```bash
+# Install globally
 npm install -g git+https://github.com/pmerwin/audio-transcription-mcp.git
+
+# Verify installation
+npm list -g audio-transcription-mcp
 ```
 
 This will:
-- Install the package globally
-- Build the TypeScript code
-- Make `audio-transcription-cli` and `audio-transcription-mcp` commands available
+- Clone the repository
+- Install all dependencies
+- Link the dist/ folder with compiled code
+- Make commands available globally
+
+**Note:** The package comes pre-built (dist/ is included), so no build step is needed.
 
 ### Configure Environment
 
@@ -47,7 +56,14 @@ EOF
 
 ### Configure Cursor
 
-Add to `~/.cursor/mcp.json`:
+**Method 1: Using Global Install Path (After npm install -g)**
+
+Find your Node.js global modules path:
+```bash
+npm config get prefix
+```
+
+Then add to `~/.cursor/mcp.json`:
 
 ```json
 {
@@ -56,13 +72,42 @@ Add to `~/.cursor/mcp.json`:
       "command": "bash",
       "args": [
         "-c",
-        "export NVM_DIR=\"$HOME/.nvm\" && [ -s \"$NVM_DIR/nvm.sh\" ] && \\. \"$NVM_DIR/nvm.sh\" && nvm use 20 && audio-transcription-mcp"
+        "export NVM_DIR=\"$HOME/.nvm\" && [ -s \"$NVM_DIR/nvm.sh\" ] && \\. \"$NVM_DIR/nvm.sh\" && nvm use 20 && node $(npm config get prefix)/lib/node_modules/audio-transcription-mcp/dist/mcp-server.js"
       ],
       "env": {
         "OPENAI_API_KEY": "your-openai-api-key-here",
         "INPUT_DEVICE_NAME": "BlackHole",
         "CHUNK_SECONDS": "8",
         "MODEL": "whisper-1"
+      }
+    }
+  }
+}
+```
+
+**Method 2: Clone and Use Directly (Most Reliable)**
+
+```bash
+# Clone the repository
+git clone https://github.com/pmerwin/audio-transcription-mcp.git ~/audio-transcription-mcp
+cd ~/audio-transcription-mcp
+npm install
+```
+
+Then use in `~/.cursor/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "audio-transcription": {
+      "command": "bash",
+      "args": [
+        "-c",
+        "export NVM_DIR=\"$HOME/.nvm\" && [ -s \"$NVM_DIR/nvm.sh\" ] && \\. \"$NVM_DIR/nvm.sh\" && nvm use 20 && node $HOME/audio-transcription-mcp/dist/mcp-server.js"
+      ],
+      "env": {
+        "OPENAI_API_KEY": "your-openai-api-key-here",
+        "INPUT_DEVICE_NAME": "BlackHole"
       }
     }
   }
