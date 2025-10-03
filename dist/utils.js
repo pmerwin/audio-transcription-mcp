@@ -15,6 +15,22 @@ export function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 /**
+ * Generate a unique timestamped filename for transcript isolation
+ * Format: transcript_YYYY-MM-DD_HH-MM-SS-mmm.md (includes milliseconds)
+ * This ensures each session gets its own file for privacy
+ */
+export function generateTimestampedFilename() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    const milliseconds = String(now.getMilliseconds()).padStart(3, '0');
+    return `transcript_${year}-${month}-${day}_${hours}-${minutes}-${seconds}-${milliseconds}.md`;
+}
+/**
  * Convert PCM buffer to WAV format
  */
 export function pcmToWav(pcmBuf, sampleRate, channels) {

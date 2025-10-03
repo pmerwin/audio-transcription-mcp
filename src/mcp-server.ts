@@ -15,6 +15,7 @@ import {
 import dotenv from "dotenv";
 import { TranscriptionSession } from "./transcription-session.js";
 import { AudioConfig, TranscriptionConfig } from "./types.js";
+import { generateTimestampedFilename } from "./utils.js";
 import { readFileSync } from "fs";
 import { resolve } from "path";
 
@@ -36,9 +37,8 @@ if (!OPENAI_API_KEY) {
   process.exit(1);
 }
 
-// Server state
+// Server state - maintains active session with its unique transcript
 let session: TranscriptionSession | null = null;
-let currentOutputFile = OUTFILE;
 
 const audioConfig: AudioConfig = {
   inputDeviceName: INPUT_DEVICE_NAME,
@@ -87,7 +87,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             outputFile: {
               type: "string",
-              description: "Output transcript filename (default: meeting_transcript.md)",
+              description: "Output transcript filename (default: auto-generated timestamped filename for privacy/isolation)",
             },
           },
         },
@@ -161,7 +161,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 text: JSON.stringify({
                   success: false,
                   message: "Transcription session is already running",
-                  outputFile: currentOutputFile,
+                  outputFile: session.getTranscriptPath(),
                 }),
               },
             ],
@@ -171,9 +171,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         // Update config if provided
         const inputDevice = (args?.inputDevice as string) || INPUT_DEVICE_NAME;
         const chunkSeconds = (args?.chunkSeconds as number) || Number(CHUNK_SECONDS);
-        const outputFile = (args?.outputFile as string) || OUTFILE;
-
-        currentOutputFile = outputFile;
+        
+        // IMPORTANT: Use timestamped filename by default for privacy/isolation
+        // Each session gets its own unique file to prevent transcript bleeding
+        const outputFile = (args?.outputFile as string) || generateTimestampedFilename();
 
         const customAudioConfig: AudioConfig = {
           ...audioConfig,
@@ -275,7 +276,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 chunksProcessed: status.chunksProcessed,
                 lastTranscriptTime: status.lastTranscriptTime?.toISOString(),
                 errors: status.errors,
-                outputFile: currentOutputFile,
+                outputFile: session.getTranscriptPath(),
               }),
             },
           ],
@@ -351,18 +352,37 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "cleanup_transcript": {
         try {
+          if (!session) {
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: JSON.stringify({
+                    success: false,
+                    message: "No active transcription session",
+                  }),
+                },
+              ],
+            };
+          }
+
+          // Get the transcript path from the active session
+          const transcriptPath = session.getTranscriptPath();
+          
           // Stop session if running
-          if (session && session.getStatus().isRunning) {
+          if (session.getStatus().isRunning) {
             await session.stop();
           }
           
-          // Delete the transcript file
+          // Delete the transcript file associated with this session
           const { unlinkSync, existsSync } = await import("fs");
           const { resolve } = await import("path");
-          const filePath = resolve(process.cwd(), currentOutputFile);
+          const filePath = resolve(process.cwd(), transcriptPath);
           
           if (existsSync(filePath)) {
             unlinkSync(filePath);
+            // Clear the session reference after cleanup
+            session = null;
             return {
               content: [
                 {
@@ -370,12 +390,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                   text: JSON.stringify({
                     success: true,
                     message: "Transcript file deleted successfully",
-                    filePath: currentOutputFile,
+                    filePath: transcriptPath,
                   }),
                 },
               ],
             };
           } else {
+            // Clear the session reference even if file doesn't exist
+            session = null;
             return {
               content: [
                 {
@@ -383,7 +405,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                   text: JSON.stringify({
                     success: true,
                     message: "Transcript file does not exist",
-                    filePath: currentOutputFile,
+                    filePath: transcriptPath,
                   }),
                 },
               ],
@@ -454,7 +476,19 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
 
   if (uri === "transcript://current") {
     try {
-      const filePath = session?.getTranscriptPath() || currentOutputFile;
+      if (!session) {
+        return {
+          contents: [
+            {
+              uri,
+              mimeType: "text/plain",
+              text: "No active transcription session",
+            },
+          ],
+        };
+      }
+      
+      const filePath = session.getTranscriptPath();
       const absolutePath = resolve(process.cwd(), filePath);
       const content = readFileSync(absolutePath, "utf-8");
 

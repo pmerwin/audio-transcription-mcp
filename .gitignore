@@ -23,6 +23,9 @@ Thumbs.db
 
 # Temporary files
 meeting_transcript.md
+transcript_*.md
+test_transcript.md
+test_session_transcript.md
 *.tmp
 .cursor/
 

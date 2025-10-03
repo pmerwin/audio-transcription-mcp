@@ -2,17 +2,47 @@
 
 Real-time audio transcription using OpenAI Whisper, available as both a standalone CLI tool and an MCP server for Cursor and Claude Desktop.
 
+## 🚀 Quick Start with npx (Recommended!)
+
+No installation required! Just add to your Cursor or Claude Desktop config:
+
+**Cursor:** `~/.cursor/config.json`  
+**Claude Desktop:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "audio-transcription": {
+      "command": "npx",
+      "args": ["-y", "audio-transcription-mcp"],
+      "env": {
+        "OPENAI_API_KEY": "sk-your-key-here",
+        "INPUT_DEVICE_NAME": "BlackHole"
+      }
+    }
+  }
+}
+```
+
+Then restart Cursor/Claude Desktop and ask:
+> "Start transcribing audio"
+
+**Prerequisites:** You still need [BlackHole audio driver](https://existential.audio/blackhole/) and an OpenAI API key. See [full setup guide](./GETTING_STARTED.md).
+
 ## Overview
 
-This application captures system audio (on macOS via AVFoundation/BlackHole) and transcribes it in real-time using OpenAI's Whisper API. Transcripts are timestamped and saved to a markdown file.
+This application captures system audio (on macOS via AVFoundation/BlackHole) and transcribes it in real-time using OpenAI's Whisper API. Transcripts are timestamped and saved to markdown files with **complete session isolation** for privacy.
 
 **Key Features:**
+- ✅ **Zero installation** - Use with `npx` 
 - ✅ Real-time system audio capture
 - ✅ Automatic transcription with OpenAI Whisper
-- ✅ Timestamped markdown transcripts
+- ✅ Timestamped markdown transcripts with unique filenames
+- ✅ **Complete session isolation** - Each session gets its own file
 - ✅ Works as MCP server in Cursor/Claude Desktop
 - ✅ Standalone CLI mode
 - ✅ Configurable chunk sizes and audio devices
+- ✅ **61 passing tests** with full endpoint coverage
 
 ## Architecture
 

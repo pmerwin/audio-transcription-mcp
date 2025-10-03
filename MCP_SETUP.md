@@ -23,6 +23,38 @@ Add the MCP server to your Cursor settings:
 
 **Location:** `~/.cursor/config.json` or via Cursor Settings → MCP Servers
 
+#### Option A: Using npx (Recommended - No Installation Required!)
+
+```json
+{
+  "mcpServers": {
+    "audio-transcription": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "audio-transcription-mcp"
+      ],
+      "env": {
+        "OPENAI_API_KEY": "sk-your-key-here",
+        "INPUT_DEVICE_NAME": "BlackHole",
+        "CHUNK_SECONDS": "8",
+        "MODEL": "whisper-1"
+      }
+    }
+  }
+}
+```
+
+**Benefits of npx:**
+- ✅ No need to clone the repository
+- ✅ No need to specify full file paths
+- ✅ Automatically uses the latest published version
+- ✅ Works from any directory
+
+#### Option B: Using Local Installation (For Development)
+
+If you've cloned the repository for development:
+
 ```json
 {
   "mcpServers": {
@@ -35,8 +67,7 @@ Add the MCP server to your Cursor settings:
         "OPENAI_API_KEY": "sk-your-key-here",
         "INPUT_DEVICE_NAME": "BlackHole",
         "CHUNK_SECONDS": "8",
-        "MODEL": "whisper-1",
-        "OUTFILE": "meeting_transcript.md"
+        "MODEL": "whisper-1"
       }
     }
   }
@@ -45,7 +76,61 @@ Add the MCP server to your Cursor settings:
 
 **Important:** Replace `/Users/pmerwin/Projects/audio-transcription-mcp` with your actual project path.
 
-### 2. Environment Variables
+### 2. Claude Desktop Configuration
+
+The configuration for Claude Desktop is similar:
+
+**Location:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+
+#### Option A: Using npx (Recommended)
+
+```json
+{
+  "mcpServers": {
+    "audio-transcription": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "audio-transcription-mcp"
+      ],
+      "env": {
+        "OPENAI_API_KEY": "sk-your-key-here",
+        "INPUT_DEVICE_NAME": "BlackHole",
+        "CHUNK_SECONDS": "8",
+        "MODEL": "whisper-1"
+      }
+    }
+  }
+}
+```
+
+#### Option B: Using Local Installation
+
+```json
+{
+  "mcpServers": {
+    "audio-transcription": {
+      "command": "node",
+      "args": [
+        "/Users/pmerwin/Projects/audio-transcription-mcp/dist/mcp-server.js"
+      ],
+      "env": {
+        "OPENAI_API_KEY": "sk-your-key-here",
+        "INPUT_DEVICE_NAME": "BlackHole",
+        "CHUNK_SECONDS": "8",
+        "MODEL": "whisper-1"
+      }
+    }
+  }
+}
+```
+
+**After Configuration:**
+1. Save the config file
+2. Restart Claude Desktop completely
+3. The audio-transcription MCP server should now be available
+
+### 3. Environment Variables
 
 You can configure the server using these environment variables:
 
@@ -59,11 +144,11 @@ You can configure the server using these environment variables:
 | `SAMPLE_RATE` | `16000` | Audio sample rate in Hz |
 | `CHANNELS` | `1` | Number of audio channels (mono) |
 
-### 3. Restart Cursor
+### 4. Restart Your Application
 
 After adding the configuration:
 1. Save the config file
-2. Restart Cursor completely
+2. Restart Cursor or Claude Desktop completely
 3. The audio-transcription MCP server should now be available
 
 ## Available Tools

@@ -77,6 +77,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Approximately $0.36 per hour of transcription
 - No subscription fees
 
+## [0.2.0] - 2025-10-03
+
+### Added
+- 🎉 **NPM Package Support** - Now available on npm! Use with `npx audio-transcription-mcp`
+- **Complete Session Isolation** - Each transcript session gets a unique timestamped filename (format: `transcript_YYYY-MM-DD_HH-MM-SS-mmm.md`)
+- **Session Management** - All MCP endpoints now respect session uniqueness (start, stop, status, get, clear, cleanup)
+- **Privacy Guarantees** - Zero chance of transcript bleeding between sessions
+- **Comprehensive Test Suite** - 61 passing tests covering all MCP endpoints and session isolation
+- Added `generateTimestampedFilename()` utility function with millisecond precision
+- Added `prepublishOnly` script to ensure build and tests run before publishing
+- New test files: `mcp-endpoints.test.ts`, `session-isolation.test.ts`, `utils.test.ts`
+
+### Changed
+- **Breaking Change**: Default transcript filename is now auto-generated with timestamp instead of fixed `meeting_transcript.md`
+- Updated MCP server to use session-based file tracking instead of global state
+- Improved `cleanup_transcript` endpoint to require active session and clear session reference after deletion
+- Updated documentation with npx usage instructions (MCP_SETUP.md, README.md)
+
+### Fixed
+- Fixed transcript bleeding between sessions - now each session is completely isolated
+- Fixed concurrent session prevention logic
+- All MCP endpoints now correctly reference the active session's transcript file
+
 ## [0.1.1] - 2025-10-03
 
 ### Fixed
