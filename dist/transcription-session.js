@@ -5,7 +5,21 @@ import { AudioCapturer } from "./audio-capturer.js";
 import { AudioProcessor } from "./audio-processor.js";
 import { TranscriptionService } from "./transcription-service.js";
 import { TranscriptManager } from "./transcript-manager.js";
-import { timestamp, sleep } from "./utils.js";
+import { sleep } from "./utils.js";
+import { appendFileSync } from "fs";
+import { join } from "path";
+import { homedir } from "os";
+// Debug logging to file (console interferes with MCP JSON-RPC protocol!)
+const DEBUG_LOG = join(homedir(), '.audio-transcription-mcp-debug.log');
+function debugLog(message) {
+    const ts = new Date().toISOString();
+    try {
+        appendFileSync(DEBUG_LOG, `[${ts}] ${message}\n`);
+    }
+    catch (e) {
+        // Silently fail if can't write debug log
+    }
+}
 export class TranscriptionSession {
     audioCapturer;
     audioProcessor;
@@ -32,12 +46,12 @@ export class TranscriptionSession {
         // Initialize transcript file (each session has unique timestamped filename for privacy)
         this.transcriptManager.initialize();
         // Verify API key is valid
-        console.log(`[${timestamp()}] Verifying OpenAI API key...`);
+        debugLog(`Verifying OpenAI API key...`);
         const isValid = await this.transcriptionService.healthCheck();
         if (!isValid) {
             throw new Error("Invalid OpenAI API key");
         }
-        console.log(`[${timestamp()}] API key verified successfully`);
+        debugLog(`API key verified successfully`);
         // Reset status
         this.status = {
             isRunning: true,
@@ -59,14 +73,13 @@ export class TranscriptionSession {
                     this.transcriptManager.append(entry);
                     this.status.chunksProcessed++;
                     this.status.lastTranscriptTime = new Date();
-                    // Output to console
-                    const line = `\n**${entry.timestamp}**  ${entry.text}\n`;
-                    process.stdout.write(line);
+                    // Log to debug file (stdout corrupts MCP protocol)
+                    debugLog(`Transcribed: ${entry.text}`);
                 }
             }
             catch (err) {
                 this.status.errors++;
-                console.error(`[${timestamp()}] Transcription error:`, err.message);
+                debugLog(`Transcription error: ${err.message}`);
             }
         });
     }
@@ -75,7 +88,7 @@ export class TranscriptionSession {
      */
     handleError(error) {
         this.status.errors++;
-        console.error(`[${timestamp()}] Audio capture error:`, error.message);
+        debugLog(`Audio capture error: ${error.message}`);
     }
     /**
      * Stop the transcription session
@@ -84,7 +97,7 @@ export class TranscriptionSession {
         if (!this.status.isRunning) {
             return;
         }
-        console.log(`\n[${timestamp()}] Stopping transcription session...`);
+        debugLog(`Stopping transcription session...`);
         this.audioCapturer.stop();
         this.audioProcessor.reset();
         this.status.isRunning = false;

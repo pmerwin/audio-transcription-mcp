@@ -130,6 +130,70 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Zero breaking changes - existing Cursor configurations work unchanged
 - Clean separation between Cursor (broader permissions) and Claude Desktop (explicit permissions)
 
+## [0.3.1] - 2025-10-03
+
+### Added
+- **Debug Logging** - Added comprehensive debug output to help troubleshoot Claude Desktop issues
+  - Version number logged on startup
+  - Current working directory
+  - OUTFILE_DIR value
+  - Output file paths when starting transcription
+- All debug info sent to stderr to not interfere with MCP protocol
+
+### Purpose
+- This is a debug release to help identify Claude Desktop caching and filesystem issues
+- Helps verify which version is actually running
+- Helps diagnose OUTFILE_DIR configuration problems
+
+## [0.3.2] - 2025-10-03
+
+### Fixed
+- **CRITICAL FIX:** Debug logging now writes to file (`~/.audio-transcription-mcp-debug.log`) instead of stderr
+- Previous version's console.error() was corrupting MCP JSON-RPC protocol messages
+- Claude Desktop can now properly communicate with the server
+
+### Changed
+- Debug output moved from stderr to `~/.audio-transcription-mcp-debug.log`
+- MCP protocol communication no longer interrupted by debug messages
+
+## [0.3.3] - 2025-10-03
+
+### Fixed
+- **CRITICAL:** Fixed "File is not defined" error by using `toFile` from openai SDK instead of browser File API
+- **CRITICAL:** Removed ALL console.log/console.error calls that were corrupting MCP JSON-RPC protocol
+- All logging now goes to `~/.audio-transcription-mcp-debug.log` instead of stdout/stderr
+- Fixed transcription-session.ts, audio-capturer.ts console outputs
+
+### Changed
+- Transcription service now properly uses OpenAI SDK's toFile helper for Node.js compatibility
+- All runtime logging redirected to debug log file to prevent MCP protocol corruption
+
+### Technical Details
+- The MCP protocol uses stdio (stdin/stdout) for JSON-RPC communication
+- ANY output to stdout or stderr corrupts the protocol messages
+- All console statements now use debugLog() function writing to ~/.audio-transcription-mcp-debug.log
+
+## [0.3.4] - 2025-10-03
+
+### Fixed
+- **CRITICAL:** Removed `process.stdout.write()` that was writing transcript text to stdout
+- This was the final source of JSON corruption in MCP protocol
+- Transcript output with markdown formatting (e.g., `**2025-10-03**`) was corrupting JSON-RPC messages
+- Transcripts are still saved to file, but no longer output to stdout in MCP mode
+
+### Changed
+- Transcript text now logged to debug file instead of stdout
+- MCP protocol should now work without any JSON parsing errors
+
+## [0.3.5] - 2025-10-03
+
+### Added
+- Debug log now automatically clears on server startup for fresh session logs
+- Easier debugging with clean log file each time MCP server starts
+
+### Changed
+- Version number updated to 0.3.4 in debug output (was hardcoded to 0.3.1)
+
 ## [Unreleased]
 
 ### Planned Features

@@ -1,7 +1,7 @@
 /**
  * Transcription service using OpenAI Whisper API
  */
-import { OpenAI } from "openai";
+import { OpenAI, toFile } from "openai";
 import { timestamp } from "./utils.js";
 export class TranscriptionService {
     client;
@@ -15,7 +15,7 @@ export class TranscriptionService {
      */
     async transcribe(wavBuffer) {
         try {
-            const file = new File([wavBuffer], "chunk.wav", { type: "audio/wav" });
+            const file = await toFile(wavBuffer, "chunk.wav", { type: "audio/wav" });
             const response = await this.client.audio.transcriptions.create({
                 model: this.config.model,
                 file: file,

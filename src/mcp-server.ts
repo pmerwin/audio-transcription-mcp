@@ -16,8 +16,16 @@ import dotenv from "dotenv";
 import { TranscriptionSession } from "./transcription-session.js";
 import { AudioConfig, TranscriptionConfig } from "./types.js";
 import { generateTimestampedFilename } from "./utils.js";
-import { readFileSync } from "fs";
-import { resolve, join } from "path";
+import { readFileSync, appendFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
+import { resolve, join, dirname } from "path";
+import { homedir } from "os";
+import { fileURLToPath } from "url";
+
+// Get package version dynamically
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const packageJson = JSON.parse(readFileSync(join(__dirname, '../package.json'), 'utf-8'));
+const VERSION = packageJson.version;
 
 // Load environment variables
 dotenv.config();
@@ -32,6 +40,32 @@ const {
   SAMPLE_RATE = "16000",
   CHANNELS = "1",
 } = process.env;
+
+// Debug logging to file (console.error interferes with MCP JSON-RPC protocol!)
+const DEBUG_LOG = join(homedir(), '.audio-transcription-mcp-debug.log');
+
+// Clear debug log on startup for fresh session
+try {
+  writeFileSync(DEBUG_LOG, '');
+} catch (e) {
+  // Silently fail if can't clear debug log
+}
+
+function debugLog(message: string) {
+  const timestamp = new Date().toISOString();
+  try {
+    appendFileSync(DEBUG_LOG, `[${timestamp}] ${message}\n`);
+  } catch (e) {
+    // Silently fail if can't write debug log
+  }
+}
+
+debugLog("=== Audio Transcription MCP Server Debug ===");
+debugLog(`Version: ${VERSION}`);
+debugLog(`Current working directory: ${process.cwd()}`);
+debugLog(`OUTFILE_DIR: ${OUTFILE_DIR}`);
+debugLog(`OPENAI_API_KEY: ${OPENAI_API_KEY ? "✓ Set" : "✗ Not set"}`);
+debugLog("==========================================");
 
 if (!OPENAI_API_KEY) {
   console.error("Error: Missing OPENAI_API_KEY in environment");
@@ -180,6 +214,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         // Combine OUTFILE_DIR with the filename to get full path
         // This allows Claude Desktop to have write access via allowedDirectories
         const outputFile = join(OUTFILE_DIR, filename);
+        
+        // Debug logging
+        debugLog(`Starting transcription:`);
+        debugLog(`  filename: ${filename}`);
+        debugLog(`  OUTFILE_DIR: ${OUTFILE_DIR}`);
+        debugLog(`  outputFile: ${outputFile}`);
 
         const customAudioConfig: AudioConfig = {
           ...audioConfig,

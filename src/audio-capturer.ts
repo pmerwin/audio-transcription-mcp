@@ -5,6 +5,20 @@
 import { spawn, ChildProcess } from "child_process";
 import { AudioConfig, AudioDevice } from "./types.js";
 import { timestamp } from "./utils.js";
+import { appendFileSync } from "fs";
+import { join } from "path";
+import { homedir } from "os";
+
+// Debug logging to file (console interferes with MCP JSON-RPC protocol!)
+const DEBUG_LOG = join(homedir(), '.audio-transcription-mcp-debug.log');
+function debugLog(message: string) {
+  const ts = new Date().toISOString();
+  try {
+    appendFileSync(DEBUG_LOG, `[${ts}] ${message}\n`);
+  } catch (e) {
+    // Silently fail if can't write debug log
+  }
+}
 
 export class AudioCapturer {
   private ffmpegProcess: ChildProcess | null = null;
@@ -79,7 +93,7 @@ export class AudioCapturer {
       );
     }
 
-    console.log(`[${timestamp()}] Using AVFoundation audio index: ${idx}`);
+    debugLog(`Using AVFoundation audio index: ${idx}`);
 
     const args = [
       "-hide_banner",
@@ -110,10 +124,10 @@ export class AudioCapturer {
     });
 
     this.ffmpegProcess.on("close", (code) => {
-      console.log(`[${timestamp()}] ffmpeg exited with code ${code}`);
+      debugLog(`ffmpeg exited with code ${code}`);
     });
 
-    console.log(`[${timestamp()}] ffmpeg started. Capturing system audio…`);
+    debugLog(`ffmpeg started. Capturing system audio…`);
   }
 
   /**

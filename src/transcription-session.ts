@@ -12,6 +12,20 @@ import {
   TranscriptionStatus,
 } from "./types.js";
 import { timestamp, sleep } from "./utils.js";
+import { appendFileSync } from "fs";
+import { join } from "path";
+import { homedir } from "os";
+
+// Debug logging to file (console interferes with MCP JSON-RPC protocol!)
+const DEBUG_LOG = join(homedir(), '.audio-transcription-mcp-debug.log');
+function debugLog(message: string) {
+  const ts = new Date().toISOString();
+  try {
+    appendFileSync(DEBUG_LOG, `[${ts}] ${message}\n`);
+  } catch (e) {
+    // Silently fail if can't write debug log
+  }
+}
 
 export class TranscriptionSession {
   private audioCapturer: AudioCapturer;
@@ -48,12 +62,12 @@ export class TranscriptionSession {
     this.transcriptManager.initialize();
 
     // Verify API key is valid
-    console.log(`[${timestamp()}] Verifying OpenAI API key...`);
+    debugLog(`Verifying OpenAI API key...`);
     const isValid = await this.transcriptionService.healthCheck();
     if (!isValid) {
       throw new Error("Invalid OpenAI API key");
     }
-    console.log(`[${timestamp()}] API key verified successfully`);
+    debugLog(`API key verified successfully`);
 
     // Reset status
     this.status = {
@@ -83,13 +97,12 @@ export class TranscriptionSession {
           this.status.chunksProcessed++;
           this.status.lastTranscriptTime = new Date();
 
-          // Output to console
-          const line = `\n**${entry.timestamp}**  ${entry.text}\n`;
-          process.stdout.write(line);
+          // Log to debug file (stdout corrupts MCP protocol)
+          debugLog(`Transcribed: ${entry.text}`);
         }
       } catch (err: any) {
         this.status.errors++;
-        console.error(`[${timestamp()}] Transcription error:`, err.message);
+        debugLog(`Transcription error: ${err.message}`);
       }
     });
   }
@@ -99,7 +112,7 @@ export class TranscriptionSession {
    */
   private handleError(error: Error): void {
     this.status.errors++;
-    console.error(`[${timestamp()}] Audio capture error:`, error.message);
+    debugLog(`Audio capture error: ${error.message}`);
   }
 
   /**
@@ -110,7 +123,7 @@ export class TranscriptionSession {
       return;
     }
 
-    console.log(`\n[${timestamp()}] Stopping transcription session...`);
+    debugLog(`Stopping transcription session...`);
     this.audioCapturer.stop();
     this.audioProcessor.reset();
     this.status.isRunning = false;

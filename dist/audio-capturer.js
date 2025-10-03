@@ -2,7 +2,20 @@
  * Audio capture using ffmpeg and AVFoundation (macOS)
  */
 import { spawn } from "child_process";
-import { timestamp } from "./utils.js";
+import { appendFileSync } from "fs";
+import { join } from "path";
+import { homedir } from "os";
+// Debug logging to file (console interferes with MCP JSON-RPC protocol!)
+const DEBUG_LOG = join(homedir(), '.audio-transcription-mcp-debug.log');
+function debugLog(message) {
+    const ts = new Date().toISOString();
+    try {
+        appendFileSync(DEBUG_LOG, `[${ts}] ${message}\n`);
+    }
+    catch (e) {
+        // Silently fail if can't write debug log
+    }
+}
 export class AudioCapturer {
     ffmpegProcess = null;
     config;
@@ -60,7 +73,7 @@ export class AudioCapturer {
         if (idx === null) {
             throw new Error(`Could not find AVFoundation audio device matching "${this.config.inputDeviceName}"`);
         }
-        console.log(`[${timestamp()}] Using AVFoundation audio index: ${idx}`);
+        debugLog(`Using AVFoundation audio index: ${idx}`);
         const args = [
             "-hide_banner",
             "-loglevel",
@@ -86,9 +99,9 @@ export class AudioCapturer {
             onError(new Error(`ffmpeg process error: ${err.message}`));
         });
         this.ffmpegProcess.on("close", (code) => {
-            console.log(`[${timestamp()}] ffmpeg exited with code ${code}`);
+            debugLog(`ffmpeg exited with code ${code}`);
         });
-        console.log(`[${timestamp()}] ffmpeg started. Capturing system audio…`);
+        debugLog(`ffmpeg started. Capturing system audio…`);
     }
     /**
      * Stop capturing audio
