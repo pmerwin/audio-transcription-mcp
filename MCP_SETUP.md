@@ -78,7 +78,7 @@ If you've cloned the repository for development:
 
 ### 2. Claude Desktop Configuration
 
-The configuration for Claude Desktop is similar:
+**IMPORTANT:** Claude Desktop requires explicit filesystem access permissions to write transcript files.
 
 **Location:** `~/Library/Application Support/Claude/claude_desktop_config.json`
 
@@ -97,12 +97,23 @@ The configuration for Claude Desktop is similar:
         "OPENAI_API_KEY": "sk-your-key-here",
         "INPUT_DEVICE_NAME": "BlackHole",
         "CHUNK_SECONDS": "8",
-        "MODEL": "whisper-1"
-      }
+        "MODEL": "whisper-1",
+        "OUTFILE_DIR": "/Users/yourname/Documents/Transcripts"
+      },
+      "alwaysAllow": ["write_file", "read_file"],
+      "allowedDirectories": [
+        "/Users/yourname/Documents/Transcripts"
+      ]
     }
   }
 }
 ```
+
+**CRITICAL:** 
+- Replace `/Users/yourname/Documents/Transcripts` with your actual desired output directory
+- Create this directory first: `mkdir -p ~/Documents/Transcripts`
+- The `allowedDirectories` gives the MCP server write access to this location
+- Without this, you'll get "read-only file system" errors in Claude Desktop
 
 #### Option B: Using Local Installation
 
@@ -118,17 +129,23 @@ The configuration for Claude Desktop is similar:
         "OPENAI_API_KEY": "sk-your-key-here",
         "INPUT_DEVICE_NAME": "BlackHole",
         "CHUNK_SECONDS": "8",
-        "MODEL": "whisper-1"
-      }
+        "MODEL": "whisper-1",
+        "OUTFILE_DIR": "/Users/yourname/Documents/Transcripts"
+      },
+      "alwaysAllow": ["write_file", "read_file"],
+      "allowedDirectories": [
+        "/Users/yourname/Documents/Transcripts"
+      ]
     }
   }
 }
 ```
 
 **After Configuration:**
-1. Save the config file
-2. Restart Claude Desktop completely
-3. The audio-transcription MCP server should now be available
+1. Create the output directory: `mkdir -p ~/Documents/Transcripts` (or your chosen path)
+2. Save the config file
+3. Restart Claude Desktop completely
+4. The audio-transcription MCP server should now be available with write access
 
 ### 3. Environment Variables
 
@@ -141,8 +158,11 @@ You can configure the server using these environment variables:
 | `CHUNK_SECONDS` | `8` | Seconds of audio per transcription chunk |
 | `MODEL` | `whisper-1` | OpenAI Whisper model to use |
 | `OUTFILE` | `meeting_transcript.md` | Default output transcript file |
+| `OUTFILE_DIR` | `process.cwd()` | Output directory for transcripts (required for Claude Desktop) |
 | `SAMPLE_RATE` | `16000` | Audio sample rate in Hz |
 | `CHANNELS` | `1` | Number of audio channels (mono) |
+
+**Claude Desktop Users:** You MUST set `OUTFILE_DIR` to a directory included in `allowedDirectories` to avoid filesystem permission errors.
 
 ### 4. Restart Your Application
 
@@ -281,6 +301,34 @@ AI: [Uses cleanup_transcript]
 
 ## Troubleshooting
 
+### Claude Desktop: "Read-only file system" Error
+
+This is the most common error with Claude Desktop. To fix:
+
+1. **Add `OUTFILE_DIR` environment variable** pointing to a writable directory
+2. **Add `allowedDirectories` to your config** with the same directory
+3. **Create the directory**: `mkdir -p ~/Documents/Transcripts` (or your chosen path)
+4. **Restart Claude Desktop completely**
+
+Example working configuration:
+```json
+{
+  "mcpServers": {
+    "audio-transcription": {
+      "command": "npx",
+      "args": ["-y", "audio-transcription-mcp"],
+      "env": {
+        "OPENAI_API_KEY": "sk-...",
+        "OUTFILE_DIR": "/Users/yourname/Documents/Transcripts"
+      },
+      "allowedDirectories": [
+        "/Users/yourname/Documents/Transcripts"
+      ]
+    }
+  }
+}
+```
+
 ### MCP Server Not Appearing in Cursor
 
 1. **Check config file syntax**: Ensure valid JSON
@@ -288,6 +336,8 @@ AI: [Uses cleanup_transcript]
 3. **Check Node version**: Must be Node 20+
 4. **Restart Cursor**: Completely quit and relaunch
 5. **Check Cursor logs**: Look for MCP server errors
+
+**Note:** Cursor does NOT require `allowedDirectories` - it has broader filesystem access by default.
 
 ### "No active transcription session" Error
 

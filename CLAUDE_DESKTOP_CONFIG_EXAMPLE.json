@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "audio-transcription": {
+      "command": "npx",
+      "args": ["-y", "audio-transcription-mcp"],
+      "env": {
+        "OPENAI_API_KEY": "sk-your-openai-api-key-here",
+        "INPUT_DEVICE_NAME": "BlackHole",
+        "CHUNK_SECONDS": "8",
+        "MODEL": "whisper-1",
+        "OUTFILE_DIR": "/Users/yourname/Documents/Transcripts"
+      },
+      "allowedDirectories": ["/Users/yourname/Documents/Transcripts"]
+    }
+  }
+}

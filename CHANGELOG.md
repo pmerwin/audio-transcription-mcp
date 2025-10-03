@@ -106,6 +106,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed transcript bleeding issue where new transcription sessions would append to previous transcripts instead of starting fresh
 - Now always clears and reinitializes transcript file when starting a new session
 
+## [0.3.0] - 2025-10-03
+
+### Added
+- 🎉 **Claude Desktop Filesystem Support** - Added `OUTFILE_DIR` environment variable to specify output directory for transcripts
+- **File System Permissions** - Support for Claude Desktop's `allowedDirectories` security model
+- **Documentation** - New `CLAUDE_DESKTOP_SETUP.md` with step-by-step setup guide
+- **Example Configs** - Added `CLAUDE_DESKTOP_CONFIG_EXAMPLE.json` with working configuration
+- **Enhanced Documentation** - Updated all guides (MCP_SETUP.md, README.md, env.example) with Claude Desktop requirements
+
+### Changed
+- File path handling now uses `join(OUTFILE_DIR, filename)` for better control over output location
+- Updated resource reading to support both absolute and relative paths
+- Improved error messages for filesystem permission issues
+
+### Fixed
+- **Claude Desktop "read-only file system" error** - Fixed by adding proper filesystem access configuration
+- File path resolution now works correctly in both Cursor and Claude Desktop environments
+
+### Technical Details
+- Default `OUTFILE_DIR` is `process.cwd()` for backward compatibility with Cursor
+- All 61 tests continue to pass
+- Zero breaking changes - existing Cursor configurations work unchanged
+- Clean separation between Cursor (broader permissions) and Claude Desktop (explicit permissions)
+
 ## [Unreleased]
 
 ### Planned Features

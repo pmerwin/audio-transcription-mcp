@@ -6,8 +6,7 @@ Real-time audio transcription using OpenAI Whisper, available as both a standalo
 
 No installation required! Just add to your Cursor or Claude Desktop config:
 
-**Cursor:** `~/.cursor/config.json`  
-**Claude Desktop:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+**Cursor:** `~/.cursor/config.json`
 
 ```json
 {
@@ -24,7 +23,35 @@ No installation required! Just add to your Cursor or Claude Desktop config:
 }
 ```
 
-Then restart Cursor/Claude Desktop and ask:
+**Claude Desktop:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+
+⚠️ **Claude Desktop requires filesystem access** - add `OUTFILE_DIR` and `allowedDirectories`:
+
+```json
+{
+  "mcpServers": {
+    "audio-transcription": {
+      "command": "npx",
+      "args": ["-y", "audio-transcription-mcp"],
+      "env": {
+        "OPENAI_API_KEY": "sk-your-key-here",
+        "INPUT_DEVICE_NAME": "BlackHole",
+        "OUTFILE_DIR": "/Users/yourname/Documents/Transcripts"
+      },
+      "allowedDirectories": [
+        "/Users/yourname/Documents/Transcripts"
+      ]
+    }
+  }
+}
+```
+
+**Before using:**
+1. Create the directory: `mkdir -p ~/Documents/Transcripts` (or your chosen path)
+2. Replace `yourname` with your actual username
+3. Restart Cursor/Claude Desktop
+
+Then ask:
 > "Start transcribing audio"
 
 **Prerequisites:** You still need [BlackHole audio driver](https://existential.audio/blackhole/) and an OpenAI API key. See [full setup guide](./GETTING_STARTED.md).

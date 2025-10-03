@@ -17,7 +17,7 @@ import { TranscriptionSession } from "./transcription-session.js";
 import { AudioConfig, TranscriptionConfig } from "./types.js";
 import { generateTimestampedFilename } from "./utils.js";
 import { readFileSync } from "fs";
-import { resolve } from "path";
+import { resolve, join } from "path";
 
 // Load environment variables
 dotenv.config();
@@ -28,6 +28,7 @@ const {
   CHUNK_SECONDS = "8",
   INPUT_DEVICE_NAME = "BlackHole",
   OUTFILE = "meeting_transcript.md",
+  OUTFILE_DIR = process.cwd(), // Default to current working directory
   SAMPLE_RATE = "16000",
   CHANNELS = "1",
 } = process.env;
@@ -174,7 +175,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         
         // IMPORTANT: Use timestamped filename by default for privacy/isolation
         // Each session gets its own unique file to prevent transcript bleeding
-        const outputFile = (args?.outputFile as string) || generateTimestampedFilename();
+        const filename = (args?.outputFile as string) || generateTimestampedFilename();
+        
+        // Combine OUTFILE_DIR with the filename to get full path
+        // This allows Claude Desktop to have write access via allowedDirectories
+        const outputFile = join(OUTFILE_DIR, filename);
 
         const customAudioConfig: AudioConfig = {
           ...audioConfig,
@@ -377,7 +382,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           // Delete the transcript file associated with this session
           const { unlinkSync, existsSync } = await import("fs");
           const { resolve } = await import("path");
-          const filePath = resolve(process.cwd(), transcriptPath);
+          // Use absolute path if transcriptPath is already absolute, otherwise resolve relative to OUTFILE_DIR
+          const filePath = transcriptPath.startsWith('/') ? transcriptPath : resolve(OUTFILE_DIR, transcriptPath);
           
           if (existsSync(filePath)) {
             unlinkSync(filePath);
@@ -489,7 +495,8 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
       }
       
       const filePath = session.getTranscriptPath();
-      const absolutePath = resolve(process.cwd(), filePath);
+      // Use absolute path if filePath is already absolute, otherwise resolve relative to OUTFILE_DIR
+      const absolutePath = filePath.startsWith('/') ? filePath : resolve(OUTFILE_DIR, filePath);
       const content = readFileSync(absolutePath, "utf-8");
 
       return {

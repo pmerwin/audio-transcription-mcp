@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "audio-transcription": {
+      "command": "npx",
+      "args": ["-y", "audio-transcription-mcp"],
+      "env": {
+        "OPENAI_API_KEY": "sk-your-openai-api-key-here",
+        "INPUT_DEVICE_NAME": "BlackHole",
+        "CHUNK_SECONDS": "8",
+        "MODEL": "whisper-1"
+      },
+      "_comment": "For Claude Desktop, add OUTFILE_DIR and allowedDirectories:",
+      "_claude_desktop_config": {
+        "env": {
+          "OUTFILE_DIR": "/Users/yourname/Documents/Transcripts"
+        },
+        "allowedDirectories": ["/Users/yourname/Documents/Transcripts"]
+      }
+    }
+  }
+}
