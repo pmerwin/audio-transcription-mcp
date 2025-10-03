@@ -17,8 +17,7 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "start": "node dist/cli.js",
-    "mcp": "node dist/mcp-server.js",
-    "prepare": "npm run build"
+    "mcp": "node dist/mcp-server.js"
   },
   "keywords": [
     "mcp",
