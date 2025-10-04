@@ -14,6 +14,10 @@ export declare class TranscriptManager {
      */
     append(entry: TranscriptEntry): void;
     /**
+     * Append a system notification to the transcript (e.g., pause/resume)
+     */
+    appendSystemMessage(message: string): void;
+    /**
      * Get the full transcript content
      */
     getContent(): string;

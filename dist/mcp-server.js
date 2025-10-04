@@ -232,7 +232,31 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                     inputDeviceName: inputDevice,
                     chunkSeconds: chunkSeconds,
                 };
-                session = new TranscriptionSession(customAudioConfig, transcriptionConfig, outputFile);
+                // Create session with status change callback for notifications
+                session = new TranscriptionSession(customAudioConfig, transcriptionConfig, outputFile, (event) => {
+                    // Log all status changes prominently
+                    const timestamp = new Date().toISOString();
+                    switch (event.type) {
+                        case 'started':
+                            debugLog(`🎤 TRANSCRIPTION STARTED at ${timestamp}`);
+                            break;
+                        case 'paused':
+                            debugLog(`⏸️  TRANSCRIPTION PAUSED (${event.reason}): ${event.message} at ${timestamp}`);
+                            break;
+                        case 'resumed':
+                            debugLog(`▶️  TRANSCRIPTION RESUMED (was ${event.previousReason}) at ${timestamp}`);
+                            break;
+                        case 'stopped':
+                            debugLog(`⏹️  TRANSCRIPTION STOPPED at ${timestamp} - Chunks: ${event.stats.chunksProcessed}, Duration: ${event.stats.duration}s, Errors: ${event.stats.errors}`);
+                            break;
+                        case 'silence_detected':
+                            debugLog(`🔇 SILENCE DETECTED (${event.consecutiveChunks}/4 chunks) at ${timestamp}`);
+                            break;
+                        case 'audio_detected':
+                            debugLog(`🎵 AUDIO DETECTED at ${timestamp}`);
+                            break;
+                    }
+                });
                 await session.start();
                 return {
                     content: [
@@ -331,6 +355,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                                 lastTranscriptTime: status.lastTranscriptTime?.toISOString(),
                                 errors: status.errors,
                                 consecutiveSilentChunks: status.consecutiveSilentChunks,
+                                silentChunksSkipped: status.silentChunksSkipped,
                                 isPaused: status.isPaused,
                                 pauseReason: status.pauseReason,
                                 warning: status.warning,

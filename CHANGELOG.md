@@ -194,6 +194,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Version number updated to 0.3.4 in debug output (was hardcoded to 0.3.1)
 
+## [0.4.1] - 2025-10-04
+
+### Added
+- 🎯 **Status Change Notifications** - Real-time event system for MCP clients
+  - Emits events for: started, stopped, paused, resumed, silence_detected, audio_detected
+  - All events logged to debug file with emoji markers for easy tracking
+  - Callback-based system allows MCP clients to be notified immediately of status changes
+  
+- 💰 **OpenAI Cost Guard & Tracking** - Explicit protection against sending silence to API
+  - New `silentChunksSkipped` status field tracks chunks NOT sent to OpenAI
+  - Debug logging shows cost savings in real-time ($0.006 per minute avoided)
+  - Double-guard system ensures 100% that silent audio never reaches Whisper API
+  - Explicit documentation and tests verify API protection
+
+- 📊 **Enhanced Status Reporting**
+  - Added `silentChunksSkipped` field to track cost savings
+  - Improved debug logging with emoji markers (🎤 🔇 🎵 ⏸️ ▶️ ⏹️ 💰)
+  - Better visibility into what audio is/isn't being sent to OpenAI
+
+### Changed
+- **Breaking**: `TranscriptionSession` constructor now accepts optional `StatusChangeCallback`
+- Enhanced debug logging for all state transitions
+- More explicit comments around OpenAI API guard logic
+
+### Tests
+- Added 15 new comprehensive tests (93 → 108 total tests)
+- New test file: `status-notifications.test.ts` (12 tests)
+- New test file: `openai-guard.test.ts` (15 tests)
+- Tests verify silent audio NEVER reaches OpenAI API
+- Tests verify all status change events are emitted correctly
+
+### Fixed
+- 🐛 **CRITICAL BUG FIX**: System messages now written to transcript file
+  - Auto-pause notifications now appear in transcript (explains gaps like the 37-second one)
+  - Auto-resume notifications now appear in transcript
+  - Manual pause/resume notifications now appear in transcript
+  - Transcript file is now self-documenting for all state changes
+
+### Documentation
+- Added inline documentation for double-guard system
+- Explicit comments marking where API calls occur
+- Cost savings calculations documented in code
+
 ## [0.4.0] - 2025-10-04
 
 ### Added

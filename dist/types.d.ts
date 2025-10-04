@@ -27,8 +27,38 @@ export interface TranscriptionStatus {
     lastTranscriptTime?: Date;
     errors: number;
     consecutiveSilentChunks?: number;
+    silentChunksSkipped?: number;
     warning?: string;
     isPaused?: boolean;
     pauseReason?: PauseReason;
 }
+export type StatusChangeEvent = {
+    type: 'started';
+    timestamp: Date;
+} | {
+    type: 'paused';
+    reason: PauseReason;
+    message: string;
+    timestamp: Date;
+} | {
+    type: 'resumed';
+    previousReason: PauseReason;
+    timestamp: Date;
+} | {
+    type: 'stopped';
+    stats: {
+        chunksProcessed: number;
+        duration: number;
+        errors: number;
+    };
+    timestamp: Date;
+} | {
+    type: 'silence_detected';
+    consecutiveChunks: number;
+    timestamp: Date;
+} | {
+    type: 'audio_detected';
+    timestamp: Date;
+};
+export type StatusChangeCallback = (event: StatusChangeEvent) => void;
 //# sourceMappingURL=types.d.ts.map

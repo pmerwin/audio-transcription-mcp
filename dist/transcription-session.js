@@ -25,21 +25,32 @@ export class TranscriptionSession {
     audioProcessor;
     transcriptionService;
     transcriptManager;
+    statusChangeCallback;
     status = {
         isRunning: false,
         chunksProcessed: 0,
         errors: 0,
         consecutiveSilentChunks: 0,
+        silentChunksSkipped: 0,
         isPaused: false,
     };
     // Configuration for silence detection
     SILENCE_THRESHOLD = 4; // Number of consecutive silent chunks before pausing
     SILENCE_AMPLITUDE_THRESHOLD = 100; // Amplitude threshold for silence detection
-    constructor(audioConfig, transcriptionConfig, outfile) {
+    constructor(audioConfig, transcriptionConfig, outfile, statusChangeCallback) {
         this.audioCapturer = new AudioCapturer(audioConfig);
         this.audioProcessor = new AudioProcessor(audioConfig);
         this.transcriptionService = new TranscriptionService(transcriptionConfig);
         this.transcriptManager = new TranscriptManager(outfile);
+        this.statusChangeCallback = statusChangeCallback;
+    }
+    /**
+     * Emit a status change event
+     */
+    emitStatusChange(event) {
+        if (this.statusChangeCallback) {
+            this.statusChangeCallback(event);
+        }
     }
     /**
      * Start the transcription session
@@ -64,11 +75,14 @@ export class TranscriptionSession {
             chunksProcessed: 0,
             errors: 0,
             consecutiveSilentChunks: 0,
+            silentChunksSkipped: 0,
             isPaused: false,
             warning: undefined,
         };
         // Start audio capture
         await this.audioCapturer.startCapture((chunk) => this.handleAudioData(chunk), (error) => this.handleError(error));
+        // Emit started event
+        this.emitStatusChange({ type: 'started', timestamp: new Date() });
     }
     /**
      * Handle incoming audio data
@@ -80,41 +94,81 @@ export class TranscriptionSession {
                 return;
             }
             try {
-                // Check if the chunk is silent before transcribing
+                // GUARD: Check if the chunk is silent BEFORE sending to OpenAI
+                // This prevents wasting money on transcribing silence
                 // WAV has 44-byte header, so skip it to get PCM data
                 const pcmData = wavBuffer.subarray(44);
                 const isSilent = isSilentAudio(pcmData, this.SILENCE_AMPLITUDE_THRESHOLD);
                 if (isSilent) {
+                    // CRITICAL: Increment silent chunks skipped counter (cost savings!)
+                    this.status.silentChunksSkipped = (this.status.silentChunksSkipped || 0) + 1;
                     this.status.consecutiveSilentChunks = (this.status.consecutiveSilentChunks || 0) + 1;
-                    debugLog(`Silent chunk detected (${this.status.consecutiveSilentChunks}/${this.SILENCE_THRESHOLD})`);
+                    // Calculate cost savings (OpenAI Whisper: $0.006 per minute)
+                    const chunkDuration = this.audioProcessor.getBufferSize() /
+                        (this.status.chunksProcessed > 0 ? this.status.chunksProcessed : 1);
+                    const costPerChunk = (chunkDuration / 60) * 0.006;
+                    const totalSavings = (this.status.silentChunksSkipped * costPerChunk).toFixed(4);
+                    debugLog(`💰 Silent chunk #${this.status.silentChunksSkipped} SKIPPED (${this.status.consecutiveSilentChunks}/${this.SILENCE_THRESHOLD}) - NOT sent to OpenAI - Total savings: $${totalSavings}`);
+                    // Emit silence detected event
+                    this.emitStatusChange({
+                        type: 'silence_detected',
+                        consecutiveChunks: this.status.consecutiveSilentChunks,
+                        timestamp: new Date()
+                    });
                     // Check if we've hit the silence threshold
                     if (this.status.consecutiveSilentChunks >= this.SILENCE_THRESHOLD) {
                         this.status.isPaused = true;
                         this.status.pauseReason = 'silence';
                         this.status.warning = `Audio capture appears to be inactive. No audio detected for ${this.SILENCE_THRESHOLD} consecutive chunks. Transcription paused. Please check your audio input device and routing.`;
                         debugLog(`⚠️  ${this.status.warning}`);
+                        // IMPORTANT: Write to transcript file so user sees why there's a gap
+                        this.transcriptManager.appendSystemMessage(`⚠️ TRANSCRIPTION AUTO-PAUSED: No audio detected for ${this.SILENCE_THRESHOLD} consecutive chunks (${this.SILENCE_THRESHOLD * 8} seconds). ` +
+                            `Please check your audio input device and routing. Transcription will auto-resume when audio is detected.`);
+                        // Emit paused event
+                        this.emitStatusChange({
+                            type: 'paused',
+                            reason: 'silence',
+                            message: this.status.warning,
+                            timestamp: new Date()
+                        });
                     }
-                    return; // Skip transcription for silent chunks
+                    // GUARD: Early return - NEVER send silent chunks to OpenAI Whisper API
+                    return;
                 }
                 // Reset silent chunk counter if we get real audio
                 if ((this.status.consecutiveSilentChunks ?? 0) > 0) {
                     debugLog(`Audio detected, resetting silent chunk counter (was ${this.status.consecutiveSilentChunks})`);
                     this.status.consecutiveSilentChunks = 0;
+                    // Emit audio detected event
+                    this.emitStatusChange({ type: 'audio_detected', timestamp: new Date() });
                     // Auto-resume if paused due to silence (not manual pause)
                     if (this.status.isPaused && this.status.pauseReason === 'silence') {
                         debugLog(`Auto-resuming transcription after detecting audio`);
+                        const previousReason = this.status.pauseReason;
                         this.status.isPaused = false;
                         this.status.pauseReason = undefined;
+                        // IMPORTANT: Write to transcript file so user sees why transcription resumed
+                        this.transcriptManager.appendSystemMessage(`✅ TRANSCRIPTION AUTO-RESUMED: Audio detected after silence. Transcription continuing...`);
+                        // Emit resumed event
+                        this.emitStatusChange({
+                            type: 'resumed',
+                            previousReason: previousReason,
+                            timestamp: new Date()
+                        });
                     }
                     this.status.warning = undefined;
                 }
+                // ✅ ONLY REAL AUDIO REACHES THIS POINT
+                // Silent chunks are filtered out above and NEVER sent to OpenAI
+                // This saves API costs and improves transcript quality
+                debugLog(`🎤 Sending audio chunk to OpenAI Whisper API for transcription...`);
                 const entry = await this.transcriptionService.transcribe(wavBuffer);
                 if (entry) {
                     this.transcriptManager.append(entry);
                     this.status.chunksProcessed++;
                     this.status.lastTranscriptTime = new Date();
                     // Log to debug file (stdout corrupts MCP protocol)
-                    debugLog(`Transcribed: ${entry.text}`);
+                    debugLog(`✅ Transcribed: ${entry.text}`);
                 }
             }
             catch (err) {
@@ -144,6 +198,15 @@ export class TranscriptionSession {
         this.status.isPaused = true;
         this.status.pauseReason = 'manual';
         this.status.warning = 'Transcription manually paused by user';
+        // Write to transcript file
+        this.transcriptManager.appendSystemMessage(`⏸️ TRANSCRIPTION PAUSED: User manually paused transcription. Use resume_transcription to continue.`);
+        // Emit paused event
+        this.emitStatusChange({
+            type: 'paused',
+            reason: 'manual',
+            message: this.status.warning,
+            timestamp: new Date()
+        });
     }
     /**
      * Resume transcription after being paused (manual or automatic)
@@ -161,6 +224,14 @@ export class TranscriptionSession {
         this.status.pauseReason = undefined;
         this.status.consecutiveSilentChunks = 0;
         this.status.warning = undefined;
+        // Write to transcript file
+        this.transcriptManager.appendSystemMessage(`▶️ TRANSCRIPTION RESUMED: User manually resumed transcription after ${previousReason} pause.`);
+        // Emit resumed event
+        this.emitStatusChange({
+            type: 'resumed',
+            previousReason: previousReason,
+            timestamp: new Date()
+        });
     }
     /**
      * Stop the transcription session
@@ -169,10 +240,23 @@ export class TranscriptionSession {
         if (!this.status.isRunning) {
             return;
         }
+        const duration = this.status.startTime
+            ? Math.floor((Date.now() - this.status.startTime.getTime()) / 1000)
+            : 0;
         debugLog(`Stopping transcription session...`);
         this.audioCapturer.stop();
         this.audioProcessor.reset();
         this.status.isRunning = false;
+        // Emit stopped event
+        this.emitStatusChange({
+            type: 'stopped',
+            stats: {
+                chunksProcessed: this.status.chunksProcessed,
+                duration: duration,
+                errors: this.status.errors
+            },
+            timestamp: new Date()
+        });
         // Give a moment for any pending operations to complete
         await sleep(250);
     }

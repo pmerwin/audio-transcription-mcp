@@ -1,16 +1,21 @@
 /**
  * Main transcription session orchestrator
  */
-import { AudioConfig, TranscriptionConfig, TranscriptionStatus } from "./types.js";
+import { AudioConfig, TranscriptionConfig, TranscriptionStatus, StatusChangeCallback } from "./types.js";
 export declare class TranscriptionSession {
     private audioCapturer;
     private audioProcessor;
     private transcriptionService;
     private transcriptManager;
+    private statusChangeCallback?;
     private status;
     private readonly SILENCE_THRESHOLD;
     private readonly SILENCE_AMPLITUDE_THRESHOLD;
-    constructor(audioConfig: AudioConfig, transcriptionConfig: TranscriptionConfig, outfile: string);
+    constructor(audioConfig: AudioConfig, transcriptionConfig: TranscriptionConfig, outfile: string, statusChangeCallback?: StatusChangeCallback);
+    /**
+     * Emit a status change event
+     */
+    private emitStatusChange;
     /**
      * Start the transcription session
      */

@@ -23,6 +23,15 @@ export class TranscriptManager {
         fs.appendFileSync(this.outfile, line, "utf8");
     }
     /**
+     * Append a system notification to the transcript (e.g., pause/resume)
+     */
+    appendSystemMessage(message) {
+        const now = new Date();
+        const timestamp = now.toISOString().replace("T", " ").split(".")[0];
+        const line = `\n---\n**${timestamp}** _[SYSTEM]_ ${message}\n---\n\n`;
+        fs.appendFileSync(this.outfile, line, "utf8");
+    }
+    /**
      * Get the full transcript content
      */
     getContent() {
