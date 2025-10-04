@@ -194,6 +194,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Version number updated to 0.3.4 in debug output (was hardcoded to 0.3.1)
 
+## [0.4.2] - 2025-10-04
+
+### Fixed
+- 🐛 **CRITICAL: Auto-Resume Bug Fixed**
+  - Auto-resume was completely broken in v0.4.0 and v0.4.1
+  - Problem: Early return when paused prevented audio detection check
+  - Fix: Restructured logic to ALWAYS check audio first, then decide action
+  - Now properly auto-resumes when audio is detected after silence pause
+  - Manual pauses still require explicit resume (correct behavior)
+
+### Changed
+- Refactored `handleAudioData()` method for clearer pause/resume logic
+- Audio silence check now happens BEFORE pause state check
+- Added explicit logging for manual pause vs silence pause behavior
+
+### Impact
+- Users will no longer need to manually resume after silence pauses
+- Auto-resume now works as originally intended and documented
+- Transcript will show "AUTO-RESUMED" message when audio returns
+
 ## [0.4.1] - 2025-10-04
 
 ### Added

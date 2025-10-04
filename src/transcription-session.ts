@@ -118,17 +118,50 @@ export class TranscriptionSession {
    */
   private handleAudioData(chunk: Buffer): void {
     this.audioProcessor.processChunk(chunk, async (wavBuffer) => {
-      // Skip processing if paused due to silence
-      if (this.status.isPaused) {
-        return;
-      }
-
       try {
-        // GUARD: Check if the chunk is silent BEFORE sending to OpenAI
-        // This prevents wasting money on transcribing silence
+        // ALWAYS check audio first - even when paused (needed for auto-resume detection)
         // WAV has 44-byte header, so skip it to get PCM data
         const pcmData = wavBuffer.subarray(44);
         const isSilent = isSilentAudio(pcmData, this.SILENCE_AMPLITUDE_THRESHOLD);
+
+        // Check if we're paused and should auto-resume
+        if (this.status.isPaused) {
+          // If paused due to manual action, stay paused regardless of audio
+          if (this.status.pauseReason === 'manual') {
+            debugLog(`⏸️ Manual pause active - skipping chunk (use resume_transcription to continue)`);
+            return;
+          }
+          
+          // If paused due to silence, check if audio has returned
+          if (this.status.pauseReason === 'silence') {
+            if (!isSilent) {
+              // Audio detected! Auto-resume
+              debugLog(`🎵 Audio detected while paused - AUTO-RESUMING transcription`);
+              this.status.isPaused = false;
+              this.status.pauseReason = undefined;
+              this.status.consecutiveSilentChunks = 0;
+              this.status.warning = undefined;
+              
+              // Write to transcript file
+              this.transcriptManager.appendSystemMessage(
+                `✅ TRANSCRIPTION AUTO-RESUMED: Audio detected after silence. Transcription continuing...`
+              );
+              
+              // Emit resumed event
+              this.emitStatusChange({ 
+                type: 'resumed', 
+                previousReason: 'silence',
+                timestamp: new Date() 
+              });
+              
+              // Fall through to process this audio chunk
+            } else {
+              // Still silent, stay paused
+              debugLog(`🔇 Still silent while paused - waiting for audio...`);
+              return;
+            }
+          }
+        }
 
         if (isSilent) {
           // CRITICAL: Increment silent chunks skipped counter (cost savings!)
@@ -151,7 +184,7 @@ export class TranscriptionSession {
           });
 
           // Check if we've hit the silence threshold
-          if (this.status.consecutiveSilentChunks >= this.SILENCE_THRESHOLD) {
+          if (this.status.consecutiveSilentChunks >= this.SILENCE_THRESHOLD && !this.status.isPaused) {
             this.status.isPaused = true;
             this.status.pauseReason = 'silence';
             this.status.warning = `Audio capture appears to be inactive. No audio detected for ${this.SILENCE_THRESHOLD} consecutive chunks. Transcription paused. Please check your audio input device and routing.`;
@@ -183,26 +216,6 @@ export class TranscriptionSession {
           
           // Emit audio detected event
           this.emitStatusChange({ type: 'audio_detected', timestamp: new Date() });
-          
-          // Auto-resume if paused due to silence (not manual pause)
-          if (this.status.isPaused && this.status.pauseReason === 'silence') {
-            debugLog(`Auto-resuming transcription after detecting audio`);
-            const previousReason = this.status.pauseReason;
-            this.status.isPaused = false;
-            this.status.pauseReason = undefined;
-            
-            // IMPORTANT: Write to transcript file so user sees why transcription resumed
-            this.transcriptManager.appendSystemMessage(
-              `✅ TRANSCRIPTION AUTO-RESUMED: Audio detected after silence. Transcription continuing...`
-            );
-            
-            // Emit resumed event
-            this.emitStatusChange({ 
-              type: 'resumed', 
-              previousReason: previousReason,
-              timestamp: new Date() 
-            });
-          }
           
           this.status.warning = undefined;
         }
