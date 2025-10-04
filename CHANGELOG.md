@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.3] - 2025-10-04
+
+### Fixed
+- **CRITICAL**: Session reference now properly cleared on `stop_transcription` to prevent accessing stopped session data
+- **CRITICAL**: All operations (`get_status`, `get_transcript`, `clear_transcript`) now validate session is actually running, not just exists
+- **CRITICAL**: Resource `transcript://current` now validates session state before returning data
+- Stopped sessions can no longer be accessed, eliminating cross-session bleed-through
+- Enhanced error messages to guide users: "Use start_transcription to begin a new session"
+
+### Changed
+- `stop_transcription` response now includes note about transcript file remaining on disk
+- All operation responses now include transcript file path for clarity
+- Improved session lifecycle clarity with proper state validation
+
+### Documentation
+- Added `SESSION_ISOLATION_ANALYSIS.md` with detailed architecture review
+- Added `SESSION_ISOLATION_FIXES.md` with complete fix documentation
+
 ## [0.6.2] - 2025-10-04
 
 ### Added

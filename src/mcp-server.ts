@@ -388,11 +388,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         }
 
         const statusBefore = session.getStatus();
+        const transcriptPath = session.getTranscriptPath();
         await session.stop();
 
         const duration = statusBefore.startTime
           ? Math.floor((Date.now() - statusBefore.startTime.getTime()) / 1000)
           : 0;
+
+        // CRITICAL: Clear session reference to prevent accessing stopped session
+        // This ensures get_transcript, get_status, etc. won't access old data
+        session = null;
 
         return {
           content: [
@@ -400,12 +405,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               type: "text",
               text: JSON.stringify({
                 success: true,
-                message: "Transcription stopped successfully",
+                message: "Transcription stopped successfully. Session cleared.",
+                transcriptFile: transcriptPath,
                 stats: {
                   chunksProcessed: statusBefore.chunksProcessed,
                   duration: `${duration} seconds`,
                   errors: statusBefore.errors,
                 },
+                note: "Transcript file remains on disk. Use cleanup_transcript to delete it.",
               }),
             },
           ],
@@ -505,7 +512,22 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 type: "text",
                 text: JSON.stringify({
                   success: false,
-                  message: "No active transcription session",
+                  message: "No active transcription session. Use start_transcription to begin.",
+                }),
+              },
+            ],
+          };
+        }
+
+        // Additional check: ensure session is actually running
+        if (!session.getStatus().isRunning) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify({
+                  success: false,
+                  message: "Transcription session is not running. Use start_transcription to begin a new session.",
                 }),
               },
             ],
@@ -536,32 +558,48 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case "clear_transcript": {
-        if (session) {
-          session.clearTranscript();
-          return {
-            content: [
-              {
-                type: "text",
-                text: JSON.stringify({
-                  success: true,
-                  message: "Transcript cleared successfully",
-                }),
-              },
-            ],
-          };
-        } else {
+        if (!session) {
           return {
             content: [
               {
                 type: "text",
                 text: JSON.stringify({
                   success: false,
-                  message: "No active transcription session",
+                  message: "No active transcription session. Use start_transcription to begin.",
                 }),
               },
             ],
           };
         }
+
+        // Additional check: ensure session is actually running
+        if (!session.getStatus().isRunning) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify({
+                  success: false,
+                  message: "Transcription session is not running. Use start_transcription to begin a new session.",
+                }),
+              },
+            ],
+          };
+        }
+
+        session.clearTranscript();
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                success: true,
+                message: "Transcript cleared successfully",
+                filePath: session.getTranscriptPath(),
+              }),
+            },
+          ],
+        };
       }
 
       case "cleanup_transcript": {
@@ -699,7 +737,21 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
             {
               uri,
               mimeType: "text/plain",
-              text: "No active transcription session",
+              text: "No active transcription session. Use start_transcription to begin.",
+            },
+          ],
+        };
+      }
+
+      // Additional check: ensure session is actually running
+      const status = session.getStatus();
+      if (!status.isRunning) {
+        return {
+          contents: [
+            {
+              uri,
+              mimeType: "text/plain",
+              text: "Transcription session is not running. Use start_transcription to begin a new session.",
             },
           ],
         };
@@ -711,7 +763,7 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
       let content = readFileSync(absolutePath, "utf-8");
       
       // Add warning banner if transcription is paused
-      const status = session.getStatus();
+      // (status already fetched above for isRunning check)
       if (status.isPaused) {
         const warningBanner = 
           `\n\n⚠️ ⚠️ ⚠️ TRANSCRIPTION STATUS ALERT ⚠️ ⚠️ ⚠️\n\n` +
