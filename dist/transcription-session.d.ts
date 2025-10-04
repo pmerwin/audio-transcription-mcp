@@ -11,7 +11,7 @@ export declare class TranscriptionSession {
     private status;
     private readonly SILENCE_THRESHOLD;
     private readonly SILENCE_AMPLITUDE_THRESHOLD;
-    constructor(audioConfig: AudioConfig, transcriptionConfig: TranscriptionConfig, outfile: string, statusChangeCallback?: StatusChangeCallback);
+    constructor(audioConfig: AudioConfig, transcriptionConfig: TranscriptionConfig, outfile: string, statusChangeCallback?: StatusChangeCallback, version?: string);
     /**
      * Emit a status change event
      */

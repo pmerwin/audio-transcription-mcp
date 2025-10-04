@@ -54,12 +54,13 @@ export class TranscriptionSession {
     audioConfig: AudioConfig,
     transcriptionConfig: TranscriptionConfig,
     outfile: string,
-    statusChangeCallback?: StatusChangeCallback
+    statusChangeCallback?: StatusChangeCallback,
+    version?: string
   ) {
     this.audioCapturer = new AudioCapturer(audioConfig);
     this.audioProcessor = new AudioProcessor(audioConfig);
     this.transcriptionService = new TranscriptionService(transcriptionConfig);
-    this.transcriptManager = new TranscriptManager(outfile);
+    this.transcriptManager = new TranscriptManager(outfile, version);
     this.statusChangeCallback = statusChangeCallback;
   }
 

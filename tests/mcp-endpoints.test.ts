@@ -65,7 +65,8 @@ describe('MCP Endpoint Handlers', () => {
       
       expect(existsSync(filename)).toBe(true);
       const content = manager.getContent();
-      expect(content).toBe('# Meeting Transcript\n\n');
+      expect(content).toContain('# Meeting Transcript');
+      expect(content).toContain('_Started:');
     });
 
     it('should create unique transcript files for multiple start calls', async () => {
@@ -244,7 +245,8 @@ describe('MCP Endpoint Handlers', () => {
       
       content = manager.getContent();
       expect(content).not.toContain('Old content');
-      expect(content).toBe('# Meeting Transcript\n\n');
+      expect(content).toContain('# Meeting Transcript');
+      expect(content).toContain('_Started:');
     });
 
     it('should maintain file path after clear', async () => {

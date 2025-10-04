@@ -37,11 +37,11 @@ export class TranscriptionSession {
     // Configuration for silence detection
     SILENCE_THRESHOLD = 4; // Number of consecutive silent chunks before pausing
     SILENCE_AMPLITUDE_THRESHOLD = 100; // Amplitude threshold for silence detection
-    constructor(audioConfig, transcriptionConfig, outfile, statusChangeCallback) {
+    constructor(audioConfig, transcriptionConfig, outfile, statusChangeCallback, version) {
         this.audioCapturer = new AudioCapturer(audioConfig);
         this.audioProcessor = new AudioProcessor(audioConfig);
         this.transcriptionService = new TranscriptionService(transcriptionConfig);
-        this.transcriptManager = new TranscriptManager(outfile);
+        this.transcriptManager = new TranscriptManager(outfile, version);
         this.statusChangeCallback = statusChangeCallback;
     }
     /**

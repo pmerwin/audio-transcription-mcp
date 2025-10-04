@@ -313,7 +313,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 debugLog(`🎵 AUDIO DETECTED at ${timestamp}`);
                 break;
             }
-          }
+          },
+          VERSION
         );
 
         await session.start();

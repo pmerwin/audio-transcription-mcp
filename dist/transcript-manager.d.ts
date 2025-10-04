@@ -4,7 +4,8 @@
 import { TranscriptEntry } from "./types.js";
 export declare class TranscriptManager {
     private outfile;
-    constructor(outfile: string);
+    private version?;
+    constructor(outfile: string, version?: string);
     /**
      * Initialize the transcript file with a header if it doesn't exist
      */

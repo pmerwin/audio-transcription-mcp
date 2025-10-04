@@ -108,7 +108,19 @@ export class AudioCapturer {
      */
     stop() {
         if (this.ffmpegProcess) {
+            // Request graceful shutdown
             this.ffmpegProcess.kill("SIGTERM");
+            // Force kill if not terminated after 2 seconds
+            const forceKillTimer = setTimeout(() => {
+                if (this.ffmpegProcess && !this.ffmpegProcess.killed) {
+                    debugLog("⚠️ ffmpeg did not terminate gracefully, force killing...");
+                    this.ffmpegProcess.kill("SIGKILL");
+                }
+            }, 2000);
+            // Clear timeout if process exits naturally
+            this.ffmpegProcess.once("exit", () => {
+                clearTimeout(forceKillTimer);
+            });
             this.ffmpegProcess = null;
         }
     }

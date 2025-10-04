@@ -78,7 +78,8 @@ describe('TranscriptionSession', () => {
       return session.start().then(() => {
         // Check that transcript is fresh
         const content = session.getTranscript();
-        expect(content).toBe('# Meeting Transcript\n\n');
+        expect(content).toContain('# Meeting Transcript');
+        expect(content).toContain('_Started:');
         expect(session.getTranscriptPath()).toBe(testFile);
       });
     });
@@ -139,7 +140,8 @@ describe('TranscriptionSession', () => {
       // Verify cleared
       const content = session.getTranscript();
       expect(content).not.toContain('Test content');
-      expect(content).toBe('# Meeting Transcript\n\n');
+      expect(content).toContain('# Meeting Transcript');
+      expect(content).toContain('_Started:');
     });
   });
 

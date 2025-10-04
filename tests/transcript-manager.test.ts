@@ -32,7 +32,8 @@ describe('TranscriptManager', () => {
       manager.initialize();
       expect(existsSync(testFile)).toBe(true);
       const content = readFileSync(testFile, 'utf8');
-      expect(content).toBe('# Meeting Transcript\n\n');
+      expect(content).toContain('# Meeting Transcript');
+      expect(content).toContain('_Started:');
     });
 
     it('should not overwrite existing file when called', () => {
@@ -105,7 +106,8 @@ describe('TranscriptManager', () => {
       manager.clear();
       
       const content = readFileSync(testFile, 'utf8');
-      expect(content).toBe('# Meeting Transcript\n\n');
+      expect(content).toContain('# Meeting Transcript');
+      expect(content).toContain('_Started:');
       expect(content).not.toContain('Old content');
     });
 
@@ -114,7 +116,8 @@ describe('TranscriptManager', () => {
       
       expect(existsSync(testFile)).toBe(true);
       const content = readFileSync(testFile, 'utf8');
-      expect(content).toBe('# Meeting Transcript\n\n');
+      expect(content).toContain('# Meeting Transcript');
+      expect(content).toContain('_Started:');
     });
 
     it('should prevent transcript bleeding across sessions', () => {
@@ -128,7 +131,8 @@ describe('TranscriptManager', () => {
       // Verify old content is gone
       const content = manager.getContent();
       expect(content).not.toContain('Session 1 content');
-      expect(content).toBe('# Meeting Transcript\n\n');
+      expect(content).toContain('# Meeting Transcript');
+      expect(content).toContain('_Started:');
       
       // Add new session content
       manager.append({ timestamp: '2025-10-03 11:00:00', text: 'Session 2 content' });
