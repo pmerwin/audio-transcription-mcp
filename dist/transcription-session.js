@@ -36,7 +36,7 @@ export class TranscriptionSession {
     };
     // Configuration for silence detection
     SILENCE_THRESHOLD = 4; // Number of consecutive silent chunks before pausing
-    SILENCE_AMPLITUDE_THRESHOLD = 100; // Amplitude threshold for silence detection
+    SILENCE_AMPLITUDE_THRESHOLD = 500; // Amplitude threshold for silence detection (increased to avoid Whisper hallucinations on ambient noise)
     constructor(audioConfig, transcriptionConfig, outfile, statusChangeCallback, version) {
         this.audioCapturer = new AudioCapturer(audioConfig);
         this.audioProcessor = new AudioProcessor(audioConfig);

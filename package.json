@@ -6,10 +6,13 @@
   "main": "dist/mcp-server.js",
   "bin": {
     "audio-transcription-cli": "dist/cli.js",
-    "audio-transcription-mcp": "dist/mcp-server.js"
+    "audio-transcription-mcp": "dist/mcp-server.js",
+    "audio-transcription-setup": "dist/setup-cli.js",
+    "audio-transcription-test": "dist/test-audio-cli.js"
   },
   "files": [
     "dist/",
+    "setup-audio.sh",
     "README.md",
     "LICENSE",
     "package.json",
@@ -23,6 +26,8 @@
     "dev": "tsc --watch",
     "start": "node dist/cli.js",
     "mcp": "node dist/mcp-server.js",
+    "setup": "node dist/setup-cli.js",
+    "test-audio": "node dist/test-audio-cli.js",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
     "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",

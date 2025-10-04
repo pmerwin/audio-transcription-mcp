@@ -48,7 +48,7 @@ export class TranscriptionSession {
 
   // Configuration for silence detection
   private readonly SILENCE_THRESHOLD = 4; // Number of consecutive silent chunks before pausing
-  private readonly SILENCE_AMPLITUDE_THRESHOLD = 100; // Amplitude threshold for silence detection
+  private readonly SILENCE_AMPLITUDE_THRESHOLD = 500; // Amplitude threshold for silence detection (increased to avoid Whisper hallucinations on ambient noise)
 
   constructor(
     audioConfig: AudioConfig,

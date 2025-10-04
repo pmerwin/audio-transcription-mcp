@@ -326,6 +326,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               text: JSON.stringify({
                 success: true,
                 message: "Transcription started successfully. IMPORTANT: Periodically check get_status (every 30-60 seconds) to monitor for audio routing issues or silence detection. The system will auto-pause after 32 seconds of silence.",
+                version: VERSION,
                 outputFile: outputFile,
                 config: {
                   inputDevice: inputDevice,
