@@ -111,8 +111,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             {
                 name: "start_transcription",
                 description: "Start capturing and transcribing system audio in real-time using OpenAI Whisper. Audio is captured in chunks and transcribed continuously. " +
-                    "IMPORTANT: After starting, periodically check get_status (every 30-60 seconds) to monitor for silence detection or audio routing issues. " +
-                    "The system will auto-pause after 32 seconds of silence and notify you in the transcript.",
+                    "IMPORTANT: After starting, periodically check get_status (every 30-60 seconds) to monitor for issues. " +
+                    "SAFETY FEATURES: The system will auto-pause in two scenarios: 1) After 32 seconds of silence, 2) After 30 minutes of NO user interaction (prevents forgotten recordings). " +
+                    "User interaction = calling get_status, pause_transcription, resume_transcription, get_transcript, or clear_transcript. " +
+                    "When paused, you'll see isPaused: true in status. User must explicitly call resume_transcription to continue.",
                 inputSchema: {
                     type: "object",
                     properties: {
@@ -157,9 +159,12 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             {
                 name: "get_status",
-                description: "Get the current status of the transcription session including whether it's running, number of chunks processed, and errors. " +
-                    "CRITICAL: Check this regularly (every 30-60 seconds) during active transcription to catch audio routing issues, silence detection, or paused states. " +
-                    "Returns isPaused, pauseReason, and warning fields if issues are detected.",
+                description: "Get the current status of the transcription session including whether it's running, number of chunks processed, errors, and session duration. " +
+                    "CRITICAL: AI assistants should check this regularly (every 30-60 seconds) during active transcription to: " +
+                    "1) Catch audio routing issues or silence detection, " +
+                    "2) Monitor session duration and alert user if running 30+ minutes (prevents forgotten recordings and excessive API costs), " +
+                    "3) Detect paused states and warnings. " +
+                    "The status.warning field will contain important alerts that should be shown to the user immediately.",
                 inputSchema: {
                     type: "object",
                     properties: {},
@@ -259,6 +264,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                         case 'audio_detected':
                             debugLog(`🎵 AUDIO DETECTED at ${timestamp}`);
                             break;
+                        case 'warning':
+                            debugLog(`⚠️  LONG SESSION WARNING: ${event.message} (${event.elapsedMinutes} minutes) at ${timestamp}`);
+                            break;
                     }
                 }, VERSION);
                 await session.start();
@@ -268,7 +276,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                             type: "text",
                             text: JSON.stringify({
                                 success: true,
-                                message: "Transcription started successfully. IMPORTANT: Periodically check get_status (every 30-60 seconds) to monitor for audio routing issues or silence detection. The system will auto-pause after 32 seconds of silence.",
+                                message: "Transcription started successfully. SAFETY: The session will auto-pause after 30 minutes of NO user interaction (prevents forgotten recordings). It will also auto-pause after 32 seconds of silence. ANY interaction (get_status, pause, resume, get_transcript) resets the 30-minute timer.",
                                 version: VERSION,
                                 outputFile: outputFile,
                                 config: {
@@ -277,10 +285,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                                     model: MODEL,
                                 },
                                 monitoring: {
-                                    recommendation: "Call get_status every 30-60 seconds to catch audio issues early",
-                                    autoPauseTrigger: "32 seconds of silence",
-                                    autoResumeEnabled: true,
-                                    warningLocation: "Check transcript://current resource for warning banner if paused",
+                                    recommendation: "Call get_status every 30-60 seconds to catch paused states and reset the inactivity timer",
+                                    autoPauseTriggers: [
+                                        "32 seconds of silence (auto-resumes when audio returns)",
+                                        "30 minutes of NO user interaction (prevents forgotten recordings)"
+                                    ],
+                                    autoResumeEnabled: "Only for silence-based pauses, NOT for inactivity pauses",
+                                    interactionResetTimer: "ANY interaction (get_status, pause, resume, get_transcript) resets the 30-minute inactivity timer",
+                                    criticalSafetyFeature: "Inactivity auto-pause prevents accidental multi-hour recordings when user forgets. User must explicitly resume to continue.",
                                 },
                             }),
                         },
@@ -355,6 +367,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                     };
                 }
                 const status = session.getStatus();
+                // Calculate elapsed time for AI assistant monitoring
+                const elapsedMinutes = status.startTime
+                    ? Math.floor((Date.now() - status.startTime.getTime()) / 60000)
+                    : 0;
+                const elapsedSeconds = status.startTime
+                    ? Math.floor((Date.now() - status.startTime.getTime()) / 1000)
+                    : 0;
+                // Calculate time since last interaction (for inactivity auto-pause)
+                const minutesSinceLastInteraction = status.lastInteractionTime
+                    ? Math.floor((Date.now() - status.lastInteractionTime.getTime()) / 60000)
+                    : 0;
+                const minutesUntilAutoPause = Math.max(0, 30 - minutesSinceLastInteraction);
                 return {
                     content: [
                         {
@@ -362,6 +386,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                             text: JSON.stringify({
                                 isRunning: status.isRunning,
                                 startTime: status.startTime?.toISOString(),
+                                lastInteractionTime: status.lastInteractionTime?.toISOString(),
+                                elapsedMinutes: elapsedMinutes,
+                                elapsedSeconds: elapsedSeconds,
+                                minutesSinceLastInteraction: minutesSinceLastInteraction,
+                                minutesUntilAutoPause: status.isPaused ? null : minutesUntilAutoPause,
                                 chunksProcessed: status.chunksProcessed,
                                 lastTranscriptTime: status.lastTranscriptTime?.toISOString(),
                                 errors: status.errors,
@@ -371,6 +400,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                                 pauseReason: status.pauseReason,
                                 warning: status.warning,
                                 outputFile: session.getTranscriptPath(),
+                                inactivitySafetyStatus: {
+                                    enabled: true,
+                                    inactivityThresholdMinutes: 30,
+                                    currentInactivityMinutes: minutesSinceLastInteraction,
+                                    willAutoPauseIn: status.isPaused ? null : `${minutesUntilAutoPause} minutes`,
+                                    note: "Calling this tool resets the inactivity timer. Keep checking to prevent auto-pause."
+                                },
                             }),
                         },
                     ],

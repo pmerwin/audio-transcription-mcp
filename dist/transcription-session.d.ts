@@ -11,6 +11,8 @@ export declare class TranscriptionSession {
     private status;
     private readonly SILENCE_THRESHOLD;
     private readonly SILENCE_AMPLITUDE_THRESHOLD;
+    private readonly INACTIVITY_AUTO_PAUSE_MINUTES;
+    private inactivityPauseTriggered;
     constructor(audioConfig: AudioConfig, transcriptionConfig: TranscriptionConfig, outfile: string, statusChangeCallback?: StatusChangeCallback, version?: string);
     /**
      * Emit a status change event
@@ -42,19 +44,30 @@ export declare class TranscriptionSession {
     stop(): Promise<void>;
     /**
      * Get current session status
+     * Also updates lastInteractionTime to track user activity
      */
     getStatus(): TranscriptionStatus;
     /**
      * Get the transcript content
+     * Also updates lastInteractionTime to track user activity
      */
     getTranscript(): string;
     /**
      * Clear the transcript
+     * Also updates lastInteractionTime to track user activity
      */
     clearTranscript(): void;
     /**
      * Get the transcript file path
      */
     getTranscriptPath(): string;
+    /**
+     * Check for user inactivity and auto-pause as safety mechanism
+     * Prevents accidental 24-hour recordings when user forgets they're recording
+     *
+     * Logic: If user hasn't interacted (get_status, pause, resume, etc.) for 30 minutes,
+     * auto-pause the session and force them to explicitly acknowledge and resume.
+     */
+    private checkLongSessionWarnings;
 }
 //# sourceMappingURL=transcription-session.d.ts.map

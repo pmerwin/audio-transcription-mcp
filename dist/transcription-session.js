@@ -37,6 +37,9 @@ export class TranscriptionSession {
     // Configuration for silence detection
     SILENCE_THRESHOLD = 4; // Number of consecutive silent chunks before pausing
     SILENCE_AMPLITUDE_THRESHOLD = 500; // Amplitude threshold for silence detection (increased to avoid Whisper hallucinations on ambient noise)
+    // Configuration for inactivity-based auto-pause
+    INACTIVITY_AUTO_PAUSE_MINUTES = 30; // Auto-pause after 30 minutes of NO user interaction
+    inactivityPauseTriggered = false;
     constructor(audioConfig, transcriptionConfig, outfile, statusChangeCallback, version) {
         this.audioCapturer = new AudioCapturer(audioConfig);
         this.audioProcessor = new AudioProcessor(audioConfig);
@@ -72,6 +75,7 @@ export class TranscriptionSession {
         this.status = {
             isRunning: true,
             startTime: new Date(),
+            lastInteractionTime: new Date(), // Initialize interaction time
             chunksProcessed: 0,
             errors: 0,
             consecutiveSilentChunks: 0,
@@ -183,6 +187,9 @@ export class TranscriptionSession {
                     // Log to debug file (stdout corrupts MCP protocol)
                     debugLog(`✅ Transcribed: ${entry.text}`);
                 }
+                // ALWAYS check for inactivity, even if transcription failed
+                // This ensures the safety mechanism works even during API issues
+                this.checkLongSessionWarnings();
             }
             catch (err) {
                 this.status.errors++;
@@ -207,6 +214,8 @@ export class TranscriptionSession {
         if (this.status.isPaused) {
             throw new Error("Transcription is already paused");
         }
+        // Update interaction time - user is interacting
+        this.status.lastInteractionTime = new Date();
         debugLog(`Manually pausing transcription...`);
         this.status.isPaused = true;
         this.status.pauseReason = 'manual';
@@ -231,6 +240,10 @@ export class TranscriptionSession {
         if (!this.status.isPaused) {
             throw new Error("Transcription is not paused");
         }
+        // Update interaction time - user is interacting
+        this.status.lastInteractionTime = new Date();
+        // CRITICAL: Reset inactivity flag so auto-pause can trigger again if needed
+        this.inactivityPauseTriggered = false;
         const previousReason = this.status.pauseReason;
         debugLog(`Resuming transcription (was paused due to: ${previousReason})...`);
         this.status.isPaused = false;
@@ -275,20 +288,35 @@ export class TranscriptionSession {
     }
     /**
      * Get current session status
+     * Also updates lastInteractionTime to track user activity
      */
     getStatus() {
+        // Update last interaction time - user is actively monitoring
+        if (this.status.isRunning) {
+            this.status.lastInteractionTime = new Date();
+        }
         return { ...this.status };
     }
     /**
      * Get the transcript content
+     * Also updates lastInteractionTime to track user activity
      */
     getTranscript() {
+        // Update last interaction time - user is actively monitoring
+        if (this.status.isRunning) {
+            this.status.lastInteractionTime = new Date();
+        }
         return this.transcriptManager.getContent();
     }
     /**
      * Clear the transcript
+     * Also updates lastInteractionTime to track user activity
      */
     clearTranscript() {
+        // Update last interaction time - user is interacting
+        if (this.status.isRunning) {
+            this.status.lastInteractionTime = new Date();
+        }
         this.transcriptManager.clear();
     }
     /**
@@ -296,6 +324,49 @@ export class TranscriptionSession {
      */
     getTranscriptPath() {
         return this.transcriptManager.getFilePath();
+    }
+    /**
+     * Check for user inactivity and auto-pause as safety mechanism
+     * Prevents accidental 24-hour recordings when user forgets they're recording
+     *
+     * Logic: If user hasn't interacted (get_status, pause, resume, etc.) for 30 minutes,
+     * auto-pause the session and force them to explicitly acknowledge and resume.
+     */
+    checkLongSessionWarnings() {
+        if (!this.status.lastInteractionTime || this.status.isPaused)
+            return;
+        const minutesSinceLastInteraction = Math.floor((Date.now() - this.status.lastInteractionTime.getTime()) / 60000);
+        // AUTO-PAUSE after 30 minutes of NO user interaction
+        if (minutesSinceLastInteraction >= this.INACTIVITY_AUTO_PAUSE_MINUTES && !this.inactivityPauseTriggered) {
+            this.inactivityPauseTriggered = true;
+            // Auto-pause the session
+            this.status.isPaused = true;
+            this.status.pauseReason = 'manual'; // Requires explicit resume
+            const totalElapsedMinutes = this.status.startTime
+                ? Math.floor((Date.now() - this.status.startTime.getTime()) / 60000)
+                : 0;
+            const warningMessage = `⏰ INACTIVITY AUTO-PAUSE: No user interaction for ${minutesSinceLastInteraction} minutes. ` +
+                `Auto-paused as a safety mechanism to prevent forgotten recordings and excessive API costs. ` +
+                `Total session time: ${totalElapsedMinutes} minutes. ` +
+                `To continue recording, call resume_transcription. Otherwise, call stop_transcription.`;
+            this.status.warning = warningMessage;
+            debugLog(`⏰ ${warningMessage}`);
+            // IMPORTANT: Write to transcript so user sees why it paused
+            this.transcriptManager.appendSystemMessage(`⏰ TRANSCRIPTION AUTO-PAUSED: No user interaction detected for ${minutesSinceLastInteraction} minutes. ` +
+                `Auto-paused as a safety mechanism to prevent forgotten recordings. ` +
+                `Total recording time: ${totalElapsedMinutes} minutes. ` +
+                `This is NORMAL and SAFE. If you want to continue recording, use resume_transcription. ` +
+                `If you're done, use stop_transcription to end the session. ` +
+                `Estimated API cost so far: ~$${(this.status.chunksProcessed * 8 / 60 * 0.006).toFixed(3)} (${this.status.chunksProcessed} chunks processed)`);
+            // Emit paused event
+            this.emitStatusChange({
+                type: 'paused',
+                reason: 'manual',
+                message: warningMessage,
+                timestamp: new Date()
+            });
+            debugLog(`⏸️  Session auto-paused after ${minutesSinceLastInteraction} minutes of inactivity (total runtime: ${totalElapsedMinutes} min)`);
+        }
     }
 }
 //# sourceMappingURL=transcription-session.js.map

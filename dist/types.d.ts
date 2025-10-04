@@ -23,6 +23,7 @@ export type PauseReason = 'manual' | 'silence';
 export interface TranscriptionStatus {
     isRunning: boolean;
     startTime?: Date;
+    lastInteractionTime?: Date;
     chunksProcessed: number;
     lastTranscriptTime?: Date;
     errors: number;
@@ -58,6 +59,11 @@ export type StatusChangeEvent = {
     timestamp: Date;
 } | {
     type: 'audio_detected';
+    timestamp: Date;
+} | {
+    type: 'warning';
+    message: string;
+    elapsedMinutes: number;
     timestamp: Date;
 };
 export type StatusChangeCallback = (event: StatusChangeEvent) => void;

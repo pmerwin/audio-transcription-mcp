@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.2] - 2025-10-04
+
+### Added
+- **Inactivity-Based Auto-Pause Safety Feature**: Automatically pauses transcription after 30 minutes of no user interaction to prevent accidental long-running recordings and excessive API costs
+  - Tracks user interaction via `lastInteractionTime` (updated on `get_status`, `pause`, `resume`, `getTranscript`, `clearTranscript` calls)
+  - Auto-pauses session if no interaction detected for 30 minutes
+  - Writes clear notice to transcript explaining the auto-pause
+  - Requires explicit user acknowledgment to resume
+  - Can trigger multiple times per session (flag properly resets)
+  - Works even during API failures or network issues
+- Enhanced `get_status` response with inactivity monitoring fields:
+  - `lastInteractionTime`: When user last interacted
+  - `minutesSinceLastInteraction`: How long since last interaction
+  - `minutesUntilAutoPause`: Countdown to auto-pause
+  - `inactivitySafetyStatus`: Detailed safety mechanism info
+- Comprehensive test suite with 21 new tests covering all edge cases
+
+### Fixed
+- **CRITICAL**: `inactivityPauseTriggered` flag now properly resets on resume (was causing auto-pause to only work once per session)
+- **CRITICAL**: Inactivity check now runs unconditionally after audio processing (was only checking on successful transcription)
+- Cost estimation now based on actual chunks processed, not elapsed time (more accurate during silence detection or pauses)
+
+### Changed
+- Updated tool descriptions in MCP server to reflect new safety mechanisms
+- Enhanced transcript messages to include actual API cost estimates
+
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
