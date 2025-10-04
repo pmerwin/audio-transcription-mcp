@@ -5,10 +5,7 @@
   "type": "module",
   "main": "dist/mcp-server.js",
   "bin": {
-    "audio-transcription-cli": "dist/cli.js",
-    "audio-transcription-mcp": "dist/mcp-server.js",
-    "audio-transcription-setup": "dist/setup-cli.js",
-    "audio-transcription-test": "dist/test-audio-cli.js"
+    "audio-transcription-mcp": "dist/main-cli.js"
   },
   "files": [
     "dist/",
