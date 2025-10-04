@@ -194,6 +194,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Version number updated to 0.3.4 in debug output (was hardcoded to 0.3.1)
 
+## [0.4.3] - 2025-10-04
+
+### Added
+- 🔔 **Proactive Monitoring Guidance for AI Assistants** (Works in both Cursor & Claude Desktop)
+  - Enhanced tool descriptions to guide Claude to check status regularly
+  - `start_transcription` now includes "IMPORTANT: periodically check get_status" in description
+  - `get_status` marked as "CRITICAL" with explicit monitoring guidance
+  - Start response includes detailed monitoring recommendations
+  
+- 🚨 **Warning Banner in Transcript Resource**
+  - When `transcript://current` is read while paused, shows prominent warning banner
+  - Banner includes: Status, Reason, Message, and Action
+  - Highly visible with emoji markers for immediate attention
+  - Works automatically when Claude/Cursor reads the transcript
+  
+- 📊 **Enhanced Start Response**
+  - Includes `monitoring` object with recommendations
+  - Specifies auto-pause trigger time (32 seconds)
+  - Indicates auto-resume is enabled
+  - Provides warning location guidance
+
+### Changed
+- Tool and resource descriptions now guide AI to proactive monitoring
+- Start success message emphasizes importance of periodic status checks
+- Resource description updated to mention warning banner feature
+
+### Impact
+- Claude/Cursor will be prompted to check status every 30-60 seconds
+- When reading transcript resource, paused state is immediately visible
+- Better user experience in both Cursor and Claude Desktop
+- Leverages AI intelligence rather than relying on server-push (which MCP stdio doesn't support)
+
+### Tests
+- Added 11 new tests (120 → 131 total)
+- New test file: `proactive-monitoring.test.ts` (11 tests)
+- Tests verify tool descriptions include monitoring guidance
+- Tests verify warning banner format and content
+- Cross-client compatibility documented
+
 ## [0.4.2] - 2025-10-04
 
 ### Fixed

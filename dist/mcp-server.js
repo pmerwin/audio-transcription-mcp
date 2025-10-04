@@ -110,7 +110,9 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         tools: [
             {
                 name: "start_transcription",
-                description: "Start capturing and transcribing system audio in real-time using OpenAI Whisper. Audio is captured in chunks and transcribed continuously.",
+                description: "Start capturing and transcribing system audio in real-time using OpenAI Whisper. Audio is captured in chunks and transcribed continuously. " +
+                    "IMPORTANT: After starting, periodically check get_status (every 30-60 seconds) to monitor for silence detection or audio routing issues. " +
+                    "The system will auto-pause after 32 seconds of silence and notify you in the transcript.",
                 inputSchema: {
                     type: "object",
                     properties: {
@@ -155,7 +157,9 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             {
                 name: "get_status",
-                description: "Get the current status of the transcription session including whether it's running, number of chunks processed, and errors.",
+                description: "Get the current status of the transcription session including whether it's running, number of chunks processed, and errors. " +
+                    "CRITICAL: Check this regularly (every 30-60 seconds) during active transcription to catch audio routing issues, silence detection, or paused states. " +
+                    "Returns isPaused, pauseReason, and warning fields if issues are detected.",
                 inputSchema: {
                     type: "object",
                     properties: {},
@@ -264,12 +268,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                             type: "text",
                             text: JSON.stringify({
                                 success: true,
-                                message: "Transcription started successfully",
+                                message: "Transcription started successfully. IMPORTANT: Periodically check get_status (every 30-60 seconds) to monitor for audio routing issues or silence detection. The system will auto-pause after 32 seconds of silence.",
                                 outputFile: outputFile,
                                 config: {
                                     inputDevice: inputDevice,
                                     chunkSeconds: chunkSeconds,
                                     model: MODEL,
+                                },
+                                monitoring: {
+                                    recommendation: "Call get_status every 30-60 seconds to catch audio issues early",
+                                    autoPauseTrigger: "32 seconds of silence",
+                                    autoResumeEnabled: true,
+                                    warningLocation: "Check transcript://current resource for warning banner if paused",
                                 },
                             }),
                         },
@@ -554,7 +564,9 @@ server.setRequestHandler(ListResourcesRequestSchema, async () => {
                 uri: "transcript://current",
                 mimeType: "text/markdown",
                 name: "Current Transcript",
-                description: "The current audio transcription in real-time",
+                description: "The current audio transcription in real-time. " +
+                    "IMPORTANT: If transcription is paused, a warning banner will appear at the top. " +
+                    "Check this resource periodically to monitor transcription health and catch issues early.",
             },
         ],
     };
@@ -578,7 +590,19 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
             const filePath = session.getTranscriptPath();
             // Use absolute path if filePath is already absolute, otherwise resolve relative to OUTFILE_DIR
             const absolutePath = filePath.startsWith('/') ? filePath : resolve(OUTFILE_DIR, filePath);
-            const content = readFileSync(absolutePath, "utf-8");
+            let content = readFileSync(absolutePath, "utf-8");
+            // Add warning banner if transcription is paused
+            const status = session.getStatus();
+            if (status.isPaused) {
+                const warningBanner = `\n\n⚠️ ⚠️ ⚠️ TRANSCRIPTION STATUS ALERT ⚠️ ⚠️ ⚠️\n\n` +
+                    `**Status**: PAUSED\n` +
+                    `**Reason**: ${status.pauseReason || 'unknown'}\n` +
+                    `**Message**: ${status.warning || 'Transcription is paused'}\n` +
+                    `**Action**: ${status.pauseReason === 'manual' ? 'Call resume_transcription to continue' : 'Will auto-resume when audio is detected'}\n\n` +
+                    `⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️\n\n` +
+                    `---\n\n`;
+                content = warningBanner + content;
+            }
             return {
                 contents: [
                     {
