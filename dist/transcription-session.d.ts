@@ -8,6 +8,8 @@ export declare class TranscriptionSession {
     private transcriptionService;
     private transcriptManager;
     private status;
+    private readonly SILENCE_THRESHOLD;
+    private readonly SILENCE_AMPLITUDE_THRESHOLD;
     constructor(audioConfig: AudioConfig, transcriptionConfig: TranscriptionConfig, outfile: string);
     /**
      * Start the transcription session
@@ -21,6 +23,14 @@ export declare class TranscriptionSession {
      * Handle errors from audio capture
      */
     private handleError;
+    /**
+     * Manually pause transcription
+     */
+    pause(): void;
+    /**
+     * Resume transcription after being paused (manual or automatic)
+     */
+    resume(): void;
     /**
      * Stop the transcription session
      */

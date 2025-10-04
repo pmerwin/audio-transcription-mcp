@@ -194,6 +194,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Version number updated to 0.3.4 in debug output (was hardcoded to 0.3.1)
 
+## [0.4.0] - 2025-10-04
+
+### Added
+- 🎉 **Pause/Resume Functionality** - Full control over transcription lifecycle
+  - New `pause_transcription` MCP tool to pause active transcription
+  - Enhanced `resume_transcription` MCP tool (works for both manual and auto-pause)
+  - Supports workflow: start → pause → resume → stop
+  - Audio capture continues during pause but transcription stops (saves API costs)
+  
+- 🔇 **Automatic Silence Detection** - Smart audio monitoring
+  - Detects when no audio is being captured (4 consecutive silent chunks)
+  - Automatically pauses transcription when silence is detected
+  - Auto-resumes when audio is detected (for silence pauses only)
+  - Manual pauses require explicit resume command
+  - Configurable silence threshold (default: amplitude < 100)
+  
+- **Enhanced Status Reporting** - More detailed session information
+  - New `isPaused` field indicates pause state
+  - New `pauseReason` field ('manual' | 'silence') explains why paused
+  - New `consecutiveSilentChunks` field tracks silence detection
+  - Enhanced `warning` messages for better user feedback
+  
+- **Comprehensive Testing** - 81 tests passing (up from 77)
+  - 13 new tests for silence detection
+  - 4 new tests for pause/resume state transitions
+  - Full coverage of pause reason types
+  - State validation tests
+
+### Changed
+- **Breaking**: Status response now includes additional optional fields
+- Improved error handling with consistent helper functions
+- Better null safety - removed non-null assertion operators
+- Enhanced debug logging for pause/resume and silence events
+
+### Fixed
+- Fixed non-null assertion operator to use safe null coalescing
+- Fixed misleading test descriptions
+- Improved test accuracy and coverage
+
+### Technical Details
+- Pause types: manual (user-initiated) vs silence (auto-detected)
+- Silence threshold: 4 consecutive chunks with amplitude < 100
+- Auto-resume only for silence pauses (manual pauses require explicit resume)
+- Consistent MCP response format with helper functions
+- Enhanced TypeScript type safety
+
+### Documentation
+- Added `PAUSE_RESUME_FEATURE.md` with comprehensive usage guide
+- Added `SILENCE_DETECTION_FEATURE.md` with technical details
+- State transition matrix and example workflows
+- Debug logging documentation
+
 ## [Unreleased]
 
 ### Planned Features

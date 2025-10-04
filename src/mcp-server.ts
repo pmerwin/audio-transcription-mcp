@@ -67,6 +67,42 @@ debugLog(`OUTFILE_DIR: ${OUTFILE_DIR}`);
 debugLog(`OPENAI_API_KEY: ${OPENAI_API_KEY ? "✓ Set" : "✗ Not set"}`);
 debugLog("==========================================");
 
+// Helper function for consistent error responses
+function createErrorResponse(message: string, isError: boolean = false) {
+  const response = {
+    content: [
+      {
+        type: "text",
+        text: JSON.stringify({
+          success: false,
+          message: message,
+        }),
+      },
+    ],
+  };
+  
+  if (isError) {
+    return { ...response, isError: true };
+  }
+  
+  return response;
+}
+
+// Helper function for consistent success responses
+function createSuccessResponse(data: any) {
+  return {
+    content: [
+      {
+        type: "text",
+        text: JSON.stringify({
+          success: true,
+          ...data,
+        }),
+      },
+    ],
+  };
+}
+
 if (!OPENAI_API_KEY) {
   console.error("Error: Missing OPENAI_API_KEY in environment");
   process.exit(1);
@@ -128,9 +164,27 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
+        name: "pause_transcription",
+        description:
+          "Pause the current transcription session. Audio capture continues but transcription is paused. Use resume_transcription to continue.",
+        inputSchema: {
+          type: "object",
+          properties: {},
+        },
+      },
+      {
+        name: "resume_transcription",
+        description:
+          "Resume transcription after it has been paused (either manually or due to silence detection).",
+        inputSchema: {
+          type: "object",
+          properties: {},
+        },
+      },
+      {
         name: "stop_transcription",
         description:
-          "Stop the current transcription session and return statistics about the session.",
+          "Stop the current transcription session completely and return statistics. This ends the session and stops audio capture.",
         inputSchema: {
           type: "object",
           properties: {},
@@ -254,6 +308,21 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
+      case "pause_transcription": {
+        if (!session) {
+          return createErrorResponse("No active transcription session");
+        }
+
+        try {
+          session.pause();
+          return createSuccessResponse({
+            message: "Transcription paused successfully. Use resume_transcription to continue.",
+          });
+        } catch (error: any) {
+          return createErrorResponse(error.message);
+        }
+      }
+
       case "stop_transcription": {
         if (!session) {
           return {
@@ -304,6 +373,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                   isRunning: false,
                   chunksProcessed: 0,
                   errors: 0,
+                  consecutiveSilentChunks: 0,
+                  isPaused: false,
                 }),
               },
             ],
@@ -321,11 +392,30 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 chunksProcessed: status.chunksProcessed,
                 lastTranscriptTime: status.lastTranscriptTime?.toISOString(),
                 errors: status.errors,
+                consecutiveSilentChunks: status.consecutiveSilentChunks,
+                isPaused: status.isPaused,
+                pauseReason: status.pauseReason,
+                warning: status.warning,
                 outputFile: session.getTranscriptPath(),
               }),
             },
           ],
         };
+      }
+
+      case "resume_transcription": {
+        if (!session) {
+          return createErrorResponse("No active transcription session");
+        }
+
+        try {
+          session.resume();
+          return createSuccessResponse({
+            message: "Transcription resumed successfully. Listening for audio...",
+          });
+        } catch (error: any) {
+          return createErrorResponse(error.message);
+        }
       }
 
       case "get_transcript": {

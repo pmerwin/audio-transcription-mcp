@@ -36,6 +36,41 @@ export function generateTimestampedFilename(): string {
 }
 
 /**
+ * Detect if an audio buffer is silent or contains very low audio
+ * Checks PCM s16le data for amplitude below threshold
+ * @param pcmBuffer - PCM buffer (s16le format)
+ * @param threshold - Maximum absolute amplitude to consider silent (default: 100)
+ * @returns true if the buffer is considered silent
+ */
+export function isSilentAudio(pcmBuffer: Buffer, threshold: number = 100): boolean {
+  // Check if buffer is too small or empty
+  if (!pcmBuffer || pcmBuffer.length < 2) {
+    return true;
+  }
+
+  // Sample every 100th value for efficiency (s16le = 2 bytes per sample)
+  const sampleInterval = 100;
+  let maxAmplitude = 0;
+  
+  for (let i = 0; i < pcmBuffer.length - 1; i += sampleInterval * 2) {
+    // Read signed 16-bit little-endian sample
+    const sample = pcmBuffer.readInt16LE(i);
+    const amplitude = Math.abs(sample);
+    
+    if (amplitude > maxAmplitude) {
+      maxAmplitude = amplitude;
+    }
+    
+    // Early exit if we find significant audio
+    if (maxAmplitude > threshold) {
+      return false;
+    }
+  }
+  
+  return maxAmplitude <= threshold;
+}
+
+/**
  * Convert PCM buffer to WAV format
  */
 export function pcmToWav(

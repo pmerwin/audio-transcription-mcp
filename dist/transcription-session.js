@@ -5,7 +5,7 @@ import { AudioCapturer } from "./audio-capturer.js";
 import { AudioProcessor } from "./audio-processor.js";
 import { TranscriptionService } from "./transcription-service.js";
 import { TranscriptManager } from "./transcript-manager.js";
-import { sleep } from "./utils.js";
+import { sleep, isSilentAudio } from "./utils.js";
 import { appendFileSync } from "fs";
 import { join } from "path";
 import { homedir } from "os";
@@ -29,7 +29,12 @@ export class TranscriptionSession {
         isRunning: false,
         chunksProcessed: 0,
         errors: 0,
+        consecutiveSilentChunks: 0,
+        isPaused: false,
     };
+    // Configuration for silence detection
+    SILENCE_THRESHOLD = 4; // Number of consecutive silent chunks before pausing
+    SILENCE_AMPLITUDE_THRESHOLD = 100; // Amplitude threshold for silence detection
     constructor(audioConfig, transcriptionConfig, outfile) {
         this.audioCapturer = new AudioCapturer(audioConfig);
         this.audioProcessor = new AudioProcessor(audioConfig);
@@ -58,6 +63,9 @@ export class TranscriptionSession {
             startTime: new Date(),
             chunksProcessed: 0,
             errors: 0,
+            consecutiveSilentChunks: 0,
+            isPaused: false,
+            warning: undefined,
         };
         // Start audio capture
         await this.audioCapturer.startCapture((chunk) => this.handleAudioData(chunk), (error) => this.handleError(error));
@@ -67,7 +75,39 @@ export class TranscriptionSession {
      */
     handleAudioData(chunk) {
         this.audioProcessor.processChunk(chunk, async (wavBuffer) => {
+            // Skip processing if paused due to silence
+            if (this.status.isPaused) {
+                return;
+            }
             try {
+                // Check if the chunk is silent before transcribing
+                // WAV has 44-byte header, so skip it to get PCM data
+                const pcmData = wavBuffer.subarray(44);
+                const isSilent = isSilentAudio(pcmData, this.SILENCE_AMPLITUDE_THRESHOLD);
+                if (isSilent) {
+                    this.status.consecutiveSilentChunks = (this.status.consecutiveSilentChunks || 0) + 1;
+                    debugLog(`Silent chunk detected (${this.status.consecutiveSilentChunks}/${this.SILENCE_THRESHOLD})`);
+                    // Check if we've hit the silence threshold
+                    if (this.status.consecutiveSilentChunks >= this.SILENCE_THRESHOLD) {
+                        this.status.isPaused = true;
+                        this.status.pauseReason = 'silence';
+                        this.status.warning = `Audio capture appears to be inactive. No audio detected for ${this.SILENCE_THRESHOLD} consecutive chunks. Transcription paused. Please check your audio input device and routing.`;
+                        debugLog(`⚠️  ${this.status.warning}`);
+                    }
+                    return; // Skip transcription for silent chunks
+                }
+                // Reset silent chunk counter if we get real audio
+                if ((this.status.consecutiveSilentChunks ?? 0) > 0) {
+                    debugLog(`Audio detected, resetting silent chunk counter (was ${this.status.consecutiveSilentChunks})`);
+                    this.status.consecutiveSilentChunks = 0;
+                    // Auto-resume if paused due to silence (not manual pause)
+                    if (this.status.isPaused && this.status.pauseReason === 'silence') {
+                        debugLog(`Auto-resuming transcription after detecting audio`);
+                        this.status.isPaused = false;
+                        this.status.pauseReason = undefined;
+                    }
+                    this.status.warning = undefined;
+                }
                 const entry = await this.transcriptionService.transcribe(wavBuffer);
                 if (entry) {
                     this.transcriptManager.append(entry);
@@ -89,6 +129,38 @@ export class TranscriptionSession {
     handleError(error) {
         this.status.errors++;
         debugLog(`Audio capture error: ${error.message}`);
+    }
+    /**
+     * Manually pause transcription
+     */
+    pause() {
+        if (!this.status.isRunning) {
+            throw new Error("Cannot pause: transcription is not running");
+        }
+        if (this.status.isPaused) {
+            throw new Error("Transcription is already paused");
+        }
+        debugLog(`Manually pausing transcription...`);
+        this.status.isPaused = true;
+        this.status.pauseReason = 'manual';
+        this.status.warning = 'Transcription manually paused by user';
+    }
+    /**
+     * Resume transcription after being paused (manual or automatic)
+     */
+    resume() {
+        if (!this.status.isRunning) {
+            throw new Error("Cannot resume: transcription is not running");
+        }
+        if (!this.status.isPaused) {
+            throw new Error("Transcription is not paused");
+        }
+        const previousReason = this.status.pauseReason;
+        debugLog(`Resuming transcription (was paused due to: ${previousReason})...`);
+        this.status.isPaused = false;
+        this.status.pauseReason = undefined;
+        this.status.consecutiveSilentChunks = 0;
+        this.status.warning = undefined;
     }
     /**
      * Stop the transcription session

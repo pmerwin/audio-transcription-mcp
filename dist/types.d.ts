@@ -19,11 +19,16 @@ export interface AudioDevice {
     index: string;
     name: string;
 }
+export type PauseReason = 'manual' | 'silence';
 export interface TranscriptionStatus {
     isRunning: boolean;
     startTime?: Date;
     chunksProcessed: number;
     lastTranscriptTime?: Date;
     errors: number;
+    consecutiveSilentChunks?: number;
+    warning?: string;
+    isPaused?: boolean;
+    pauseReason?: PauseReason;
 }
 //# sourceMappingURL=types.d.ts.map
