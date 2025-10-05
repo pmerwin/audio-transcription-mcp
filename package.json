@@ -1,6 +1,6 @@
 {
   "name": "audio-transcription-mcp",
-  "version": "0.6.3",
+  "version": "0.6.4",
   "description": "MCP server for real-time audio transcription using OpenAI Whisper",
   "type": "module",
   "main": "dist/mcp-server.js",

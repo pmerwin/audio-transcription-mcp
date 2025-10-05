@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.4] - 2025-10-04
+
+### Fixed
+- **CRITICAL**: `cleanup_transcript` now works correctly after `stop_transcription`
+  - Previously would fail with "No active transcription session"
+  - Now tracks `lastTranscriptPath` to allow cleanup after session is stopped
+  - Recommended workflow (`stop_transcription` → `cleanup_transcript`) now functional
+- `lastTranscriptPath` automatically cleared when starting new session (prevents cross-session issues)
+
+### Added
+- 6 comprehensive tests for `cleanup_transcript` functionality
+- Tests verify cleanup works after stop, while running, and with no session
+- Tests ensure session isolation is maintained with transcript path tracking
+
 ## [0.6.3] - 2025-10-04
 
 ### Fixed

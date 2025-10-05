@@ -84,6 +84,8 @@ if (!OPENAI_API_KEY) {
 }
 // Server state - maintains active session with its unique transcript
 let session = null;
+// Track last transcript path so cleanup_transcript can work after stop_transcription
+let lastTranscriptPath = null;
 const audioConfig = {
     inputDeviceName: INPUT_DEVICE_NAME,
     sampleRate: Number(SAMPLE_RATE),
@@ -241,6 +243,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                     inputDeviceName: inputDevice,
                     chunkSeconds: chunkSeconds,
                 };
+                // Clear any previous transcript path when starting new session
+                lastTranscriptPath = null;
                 // Create session with status change callback for notifications
                 session = new TranscriptionSession(customAudioConfig, transcriptionConfig, outputFile, (event) => {
                     // Log all status changes prominently
@@ -335,6 +339,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                     : 0;
                 // CRITICAL: Clear session reference to prevent accessing stopped session
                 // This ensures get_transcript, get_status, etc. won't access old data
+                // BUT save the transcript path so cleanup_transcript can still delete it
+                lastTranscriptPath = transcriptPath;
                 session = null;
                 return {
                     content: [
@@ -524,34 +530,45 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             }
             case "cleanup_transcript": {
                 try {
-                    if (!session) {
+                    let transcriptPath = null;
+                    // Get transcript path from active session OR last stopped session
+                    if (session) {
+                        transcriptPath = session.getTranscriptPath();
+                        // Stop session if it's still running
+                        if (session.getStatus().isRunning) {
+                            await session.stop();
+                            lastTranscriptPath = transcriptPath;
+                        }
+                        // Clear the session reference after cleanup
+                        session = null;
+                    }
+                    else if (lastTranscriptPath) {
+                        // Use the last transcript path from a stopped session
+                        transcriptPath = lastTranscriptPath;
+                    }
+                    else {
+                        // No session and no last transcript path
                         return {
                             content: [
                                 {
                                     type: "text",
                                     text: JSON.stringify({
                                         success: false,
-                                        message: "No active transcription session",
+                                        message: "No transcript to cleanup. Start a transcription session first.",
                                     }),
                                 },
                             ],
                         };
                     }
-                    // Get the transcript path from the active session
-                    const transcriptPath = session.getTranscriptPath();
-                    // Stop session if running
-                    if (session.getStatus().isRunning) {
-                        await session.stop();
-                    }
-                    // Delete the transcript file associated with this session
+                    // Delete the transcript file
                     const { unlinkSync, existsSync } = await import("fs");
                     const { resolve } = await import("path");
                     // Use absolute path if transcriptPath is already absolute, otherwise resolve relative to OUTFILE_DIR
                     const filePath = transcriptPath.startsWith('/') ? transcriptPath : resolve(OUTFILE_DIR, transcriptPath);
                     if (existsSync(filePath)) {
                         unlinkSync(filePath);
-                        // Clear the session reference after cleanup
-                        session = null;
+                        // Clear the last transcript path after successful cleanup
+                        lastTranscriptPath = null;
                         return {
                             content: [
                                 {
@@ -566,15 +583,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                         };
                     }
                     else {
-                        // Clear the session reference even if file doesn't exist
-                        session = null;
+                        // Clear the last transcript path even if file doesn't exist
+                        lastTranscriptPath = null;
                         return {
                             content: [
                                 {
                                     type: "text",
                                     text: JSON.stringify({
                                         success: true,
-                                        message: "Transcript file does not exist",
+                                        message: "Transcript file does not exist (may have been deleted manually)",
                                         filePath: transcriptPath,
                                     }),
                                 },
