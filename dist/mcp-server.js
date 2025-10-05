@@ -573,8 +573,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                     if (existsSync(filePath)) {
                         unlinkSync(filePath);
                         // Clear the last transcript path after successful cleanup
-                        // Only clear if we're cleaning the lastTranscriptPath (not active session)
-                        if (!cleaningActiveSession && transcriptPath === lastTranscriptPath) {
+                        if (cleaningActiveSession) {
+                            lastTranscriptPath = null;
+                        }
+                        else if (transcriptPath === lastTranscriptPath) {
                             lastTranscriptPath = null;
                         }
                         return {
@@ -595,7 +597,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                     }
                     else {
                         // Clear the last transcript path even if file doesn't exist
-                        if (!cleaningActiveSession && transcriptPath === lastTranscriptPath) {
+                        if (cleaningActiveSession) {
+                            lastTranscriptPath = null;
+                        }
+                        else if (transcriptPath === lastTranscriptPath) {
                             lastTranscriptPath = null;
                         }
                         return {

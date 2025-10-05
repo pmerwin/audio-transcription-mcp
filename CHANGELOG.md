@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.6] - 2025-10-04
+
+### Fixed
+- `cleanup_transcript` now immediately clears `lastTranscriptPath` when cleaning active session
+  - Previously: cleaning active session left pointer populated, causing confusing follow-up message
+  - Now: pointer cleared immediately after cleanup, whether active or previous session
+  - Eliminates ambiguous "previous session transcript not found" message after active cleanup
+
+### Changed
+- Simplified cleanup flow logic for better maintainability
+- Consistent state management across all cleanup scenarios
+
 ## [0.6.5] - 2025-10-04
 
 ### Fixed
