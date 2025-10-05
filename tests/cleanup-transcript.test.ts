@@ -182,6 +182,62 @@ describe('cleanup_transcript after stop_transcription', () => {
     expect(lastTranscriptPath).toBeNull();
   });
 
+  it('should allow cleanup of previous session after starting new session', async () => {
+    // This is the critical workflow: stop session → start new session → cleanup old session
+    const testFile1 = resolve(process.cwd(), 'test_cleanup_old_1.md');
+    const testFile2 = resolve(process.cwd(), 'test_cleanup_old_2.md');
+    
+    let session: TranscriptionSession | null = null;
+    let lastTranscriptPath: string | null = null;
+
+    // Session 1: Start and stop WITHOUT cleanup
+    session = new TranscriptionSession(audioConfig, transcriptionConfig, testFile1);
+    (session as any).transcriptionService.healthCheck = (jest.fn() as any).mockResolvedValue(true);
+    (session as any).audioCapturer.startCapture = (jest.fn() as any).mockResolvedValue(undefined);
+    (session as any).audioCapturer.stop = jest.fn();
+    
+    await session.start();
+    expect(existsSync(testFile1)).toBe(true);
+    
+    // Stop without cleanup (user forgets or doesn't want to cleanup yet)
+    await session.stop();
+    lastTranscriptPath = testFile1;
+    session = null;
+    
+    expect(existsSync(testFile1)).toBe(true);
+    expect(lastTranscriptPath).toBe(testFile1);
+    
+    // Session 2: Start NEW session (should NOT clear lastTranscriptPath)
+    // This is the key fix - we should still be able to cleanup session 1
+    session = new TranscriptionSession(audioConfig, transcriptionConfig, testFile2);
+    (session as any).transcriptionService.healthCheck = (jest.fn() as any).mockResolvedValue(true);
+    (session as any).audioCapturer.startCapture = (jest.fn() as any).mockResolvedValue(undefined);
+    
+    await session.start();
+    expect(existsSync(testFile2)).toBe(true);
+    
+    // CRITICAL: lastTranscriptPath should still point to session 1
+    expect(lastTranscriptPath).toBe(testFile1);
+    
+    // Now cleanup the OLD session while NEW session is running
+    if (lastTranscriptPath && existsSync(lastTranscriptPath)) {
+      unlinkSync(lastTranscriptPath);
+      lastTranscriptPath = null;
+    }
+    
+    // Verify old file deleted, new file still exists
+    expect(existsSync(testFile1)).toBe(false);
+    expect(existsSync(testFile2)).toBe(true);
+    expect(lastTranscriptPath).toBeNull();
+    
+    // Clean up session 2
+    (session as any).audioCapturer.stop = jest.fn();
+    await session.stop();
+    if (existsSync(testFile2)) {
+      unlinkSync(testFile2);
+    }
+  });
+
   it('should maintain session isolation with lastTranscriptPath', async () => {
     // Verify each session gets its own path
     const testFile1 = resolve(process.cwd(), 'test_cleanup_1.md');

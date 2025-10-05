@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.5] - 2025-10-04
+
+### Fixed
+- **CRITICAL**: `lastTranscriptPath` no longer cleared when starting new session
+  - Previously: stop → start new → ❌ old transcript orphaned (no way to cleanup)
+  - Now: stop → start new → ✅ can still cleanup old transcript via `cleanup_transcript`
+  - Workflow "stop session 1 → start session 2 → cleanup session 1" now works correctly
+- `cleanup_transcript` now distinguishes between active and previous session cleanup
+  - Provides clear feedback: "Active session transcript deleted" vs "Previous session transcript deleted"
+
+### Added
+- Test for critical workflow: stop → start new → cleanup old (regression prevention)
+- Total test count: 167 tests passing (+1 from v0.6.4)
+
 ## [0.6.4] - 2025-10-04
 
 ### Fixed

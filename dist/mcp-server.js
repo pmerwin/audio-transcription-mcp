@@ -243,8 +243,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                     inputDeviceName: inputDevice,
                     chunkSeconds: chunkSeconds,
                 };
-                // Clear any previous transcript path when starting new session
-                lastTranscriptPath = null;
+                // NOTE: We do NOT clear lastTranscriptPath here
+                // This allows cleanup_transcript to delete previous session's file
+                // even after starting a new session. lastTranscriptPath is only
+                // cleared after successful cleanup or when it's the same as the new session.
                 // Create session with status change callback for notifications
                 session = new TranscriptionSession(customAudioConfig, transcriptionConfig, outputFile, (event) => {
                     // Log all status changes prominently
@@ -531,9 +533,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             case "cleanup_transcript": {
                 try {
                     let transcriptPath = null;
+                    let cleaningActiveSession = false;
                     // Get transcript path from active session OR last stopped session
                     if (session) {
                         transcriptPath = session.getTranscriptPath();
+                        cleaningActiveSession = true;
                         // Stop session if it's still running
                         if (session.getStatus().isRunning) {
                             await session.stop();
@@ -545,6 +549,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                     else if (lastTranscriptPath) {
                         // Use the last transcript path from a stopped session
                         transcriptPath = lastTranscriptPath;
+                        cleaningActiveSession = false;
                     }
                     else {
                         // No session and no last transcript path
@@ -568,7 +573,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                     if (existsSync(filePath)) {
                         unlinkSync(filePath);
                         // Clear the last transcript path after successful cleanup
-                        lastTranscriptPath = null;
+                        // Only clear if we're cleaning the lastTranscriptPath (not active session)
+                        if (!cleaningActiveSession && transcriptPath === lastTranscriptPath) {
+                            lastTranscriptPath = null;
+                        }
                         return {
                             content: [
                                 {
@@ -577,6 +585,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                                         success: true,
                                         message: "Transcript file deleted successfully",
                                         filePath: transcriptPath,
+                                        note: cleaningActiveSession
+                                            ? "Active session transcript deleted"
+                                            : "Previous session transcript deleted",
                                     }),
                                 },
                             ],
@@ -584,7 +595,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                     }
                     else {
                         // Clear the last transcript path even if file doesn't exist
-                        lastTranscriptPath = null;
+                        if (!cleaningActiveSession && transcriptPath === lastTranscriptPath) {
+                            lastTranscriptPath = null;
+                        }
                         return {
                             content: [
                                 {
@@ -593,6 +606,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                                         success: true,
                                         message: "Transcript file does not exist (may have been deleted manually)",
                                         filePath: transcriptPath,
+                                        note: cleaningActiveSession
+                                            ? "Active session transcript not found"
+                                            : "Previous session transcript not found",
                                     }),
                                 },
                             ],
