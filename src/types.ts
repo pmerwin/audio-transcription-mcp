@@ -38,6 +38,9 @@ export interface TranscriptionStatus {
   warning?: string;
   isPaused?: boolean;
   pauseReason?: PauseReason;
+  // Cost tracking (OpenAI Whisper: $0.006 per minute)
+  estimatedCost?: number; // Total cost so far for chunks sent to OpenAI
+  costSaved?: number; // Money saved by skipping silent chunks
 }
 
 export type StatusChangeEvent = 

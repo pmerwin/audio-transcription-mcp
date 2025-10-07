@@ -32,6 +32,8 @@ export interface TranscriptionStatus {
     warning?: string;
     isPaused?: boolean;
     pauseReason?: PauseReason;
+    estimatedCost?: number;
+    costSaved?: number;
 }
 export type StatusChangeEvent = {
     type: 'started';

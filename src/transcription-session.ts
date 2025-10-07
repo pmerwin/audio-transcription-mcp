@@ -36,6 +36,7 @@ export class TranscriptionSession {
   private transcriptionService: TranscriptionService;
   private transcriptManager: TranscriptManager;
   private statusChangeCallback?: StatusChangeCallback;
+  private chunkSeconds: number; // Store chunk duration for cost calculation
 
   private status: TranscriptionStatus = {
     isRunning: false,
@@ -53,6 +54,9 @@ export class TranscriptionSession {
   // Configuration for inactivity-based auto-pause
   private readonly INACTIVITY_AUTO_PAUSE_MINUTES = 30; // Auto-pause after 30 minutes of NO user interaction
   private inactivityPauseTriggered = false;
+  
+  // OpenAI Whisper pricing
+  private readonly WHISPER_COST_PER_MINUTE = 0.006; // $0.006 per minute
 
   constructor(
     audioConfig: AudioConfig,
@@ -66,6 +70,7 @@ export class TranscriptionSession {
     this.transcriptionService = new TranscriptionService(transcriptionConfig);
     this.transcriptManager = new TranscriptManager(outfile, version);
     this.statusChangeCallback = statusChangeCallback;
+    this.chunkSeconds = audioConfig.chunkSeconds; // Store for cost calculation
   }
 
   /**
@@ -371,7 +376,17 @@ export class TranscriptionSession {
     if (this.status.isRunning) {
       this.status.lastInteractionTime = new Date();
     }
-    return { ...this.status };
+    
+    // Calculate cost estimates based on actual API usage
+    const costPerChunk = (this.chunkSeconds / 60) * this.WHISPER_COST_PER_MINUTE;
+    const estimatedCost = this.status.chunksProcessed * costPerChunk;
+    const costSaved = (this.status.silentChunksSkipped || 0) * costPerChunk;
+    
+    return { 
+      ...this.status,
+      estimatedCost: parseFloat(estimatedCost.toFixed(4)),
+      costSaved: parseFloat(costSaved.toFixed(4))
+    };
   }
 
   /**

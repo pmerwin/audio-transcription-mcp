@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.0] - 2025-10-07
+
+### Added
+- **Real-time cost tracking in get_status and stop_transcription**
+  - `estimatedCost` field shows total spent on OpenAI Whisper API so far
+  - `costSaved` field shows money saved by skipping silent chunks
+  - Both fields calculated automatically based on actual usage
+  - Cost breakdown displayed in status responses with clear note that only API calls cost money
+  - 6 new comprehensive tests for cost calculation accuracy
+
+### Improved
+- Better cost transparency - users can now see exactly what they're spending in real-time
+- Cost tracking helps users understand the value of built-in silence detection
+- All local operations (audio capture, processing, file ops) clearly marked as FREE
+
 ## [0.6.7] - 2025-10-07
 
 ### Documentation

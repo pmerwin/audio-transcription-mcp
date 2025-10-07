@@ -8,11 +8,13 @@ export declare class TranscriptionSession {
     private transcriptionService;
     private transcriptManager;
     private statusChangeCallback?;
+    private chunkSeconds;
     private status;
     private readonly SILENCE_THRESHOLD;
     private readonly SILENCE_AMPLITUDE_THRESHOLD;
     private readonly INACTIVITY_AUTO_PAUSE_MINUTES;
     private inactivityPauseTriggered;
+    private readonly WHISPER_COST_PER_MINUTE;
     constructor(audioConfig: AudioConfig, transcriptionConfig: TranscriptionConfig, outfile: string, statusChangeCallback?: StatusChangeCallback, version?: string);
     /**
      * Emit a status change event

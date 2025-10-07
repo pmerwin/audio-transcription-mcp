@@ -420,6 +420,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                   chunksProcessed: statusBefore.chunksProcessed,
                   duration: `${duration} seconds`,
                   errors: statusBefore.errors,
+                  silentChunksSkipped: statusBefore.silentChunksSkipped || 0,
+                },
+                costs: {
+                  estimatedCost: `$${(statusBefore.estimatedCost || 0).toFixed(4)}`,
+                  costSaved: `$${(statusBefore.costSaved || 0).toFixed(4)}`,
+                  note: "Cost is for OpenAI Whisper API only ($0.006/min). Audio capture, processing, and file operations are FREE.",
                 },
                 note: "Transcript file remains on disk. Use cleanup_transcript to delete it.",
               }),
@@ -485,6 +491,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 pauseReason: status.pauseReason,
                 warning: status.warning,
                 outputFile: session.getTranscriptPath(),
+                costs: {
+                  estimatedCost: `$${(status.estimatedCost || 0).toFixed(4)}`,
+                  costSaved: `$${(status.costSaved || 0).toFixed(4)}`,
+                  note: "Cost is for OpenAI Whisper API only ($0.006/min). Audio capture, processing, and file operations are FREE.",
+                },
                 inactivitySafetyStatus: {
                   enabled: true,
                   inactivityThresholdMinutes: 30,
