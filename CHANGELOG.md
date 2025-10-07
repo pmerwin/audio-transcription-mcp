@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.7] - 2025-10-07
+
+### Documentation
+- **Added comprehensive cost & performance section to README**
+  - Clear breakdown: only OpenAI Whisper API costs money, everything else is FREE
+  - Detailed cost table: $0.36/hour, $2.88/8-hour day
+  - Explanation of built-in cost savings via silence detection
+  - Performance metrics and optimization tips
+  - Updated "What You Need" section with direct link to cost details
+
+### Improved
+- Better transparency for users about exactly where money is spent
+- Emphasis on local processing (audio capture, file ops, silence detection all FREE)
+- Cost optimization guidance for users
+
 ## [0.6.6] - 2025-10-04
 
 ### Fixed
