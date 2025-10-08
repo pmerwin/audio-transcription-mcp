@@ -5,7 +5,7 @@
 ### 1. Initialize Git Repository (if not already done)
 
 ```bash
-cd /Users/pmerwin/Projects/audio-transcription-mcp
+cd /path/to/audio-transcription-mcp
 git init
 ```
 
@@ -128,10 +128,9 @@ npm install -g git+https://github.com/pmerwin/audio-transcription-mcp.git
 
 # Verify commands are available
 which audio-transcription-mcp
-which audio-transcription-cli
 
 # Test CLI
-audio-transcription-cli --help
+audio-transcription-mcp --help
 ```
 
 ## Updating After Publishing
@@ -201,6 +200,317 @@ All notable changes to this project will be documented in this file.
 - Testing guide (TESTING.md)
 - Getting started guide (GETTING_STARTED.md)
 ```
+
+## Publishing to NPM
+
+Publishing to NPM makes installation easier for users - they can simply run `npm install -g audio-transcription-mcp` instead of cloning from GitHub.
+
+### 1. Prepare package.json
+
+Ensure your `package.json` is properly configured for NPM:
+
+```json
+{
+  "name": "audio-transcription-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for real-time audio transcription using OpenAI Whisper",
+  "main": "dist/mcp-server.js",
+  "bin": {
+    "audio-transcription-mcp": "dist/main-cli.js"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "openai",
+    "whisper",
+    "transcription",
+    "audio",
+    "cursor",
+    "claude",
+    "speech-to-text"
+  ],
+  "author": "Phil Merwin",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pmerwin/audio-transcription-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/pmerwin/audio-transcription-mcp/issues"
+  },
+  "homepage": "https://github.com/pmerwin/audio-transcription-mcp#readme"
+}
+```
+
+### 2. Create .npmignore
+
+Create a `.npmignore` file to exclude files from the NPM package:
+
+> ⚠️ **Warning**: The command below will overwrite any existing `.npmignore` file. If you already have one, back it up first or manually add these entries instead.
+
+```bash
+cat > .npmignore << 'EOF'
+# Source files (we publish dist/)
+src/
+tests/
+*.test.ts
+*.test.js
+
+# Development files
+.git/
+.github/
+.vscode/
+*.log
+*.md.backup
+npm-debug.log*
+
+# Coverage reports
+coverage/
+.nyc_output/
+
+# Documentation (keep README.md)
+IMPLEMENTATION_PLAN.md
+AUTOMATION_RESEARCH_SUMMARY.md
+AUTOMATED_SETUP_SUMMARY.md
+CHANGES_SUMMARY.md
+CODE_REVIEW.md
+COMMUNITY_READY.md
+SESSION_ISOLATION_ANALYSIS.md
+SESSION_ISOLATION_FIXES.md
+TRANSCRIPT_GAP_FIX.md
+PAUSE_RESUME_FEATURE.md
+SILENCE_DETECTION_FEATURE.md
+PUBLISHING.md
+
+# Example files
+env.example
+*.example.json
+
+# Build configs
+tsconfig.json
+jest.config.js
+build-bundle.js
+
+# Personal transcripts
+meeting_transcript.md
+transcript_*.md
+
+# Environment
+.env
+.env.local
+EOF
+```
+
+**Important**: Keep `dist/`, `README.md`, `LICENSE`, `INSTALL.md`, `MCP_SETUP.md`, and `GETTING_STARTED.md` - these should be published.
+
+### 3. Create NPM Account (if you don't have one)
+
+1. Go to https://www.npmjs.com/signup
+2. Create an account with username, email, and password
+3. Verify your email address
+
+### 4. Login to NPM via CLI
+
+```bash
+npm login
+```
+
+Enter your:
+- Username
+- Password
+- Email
+- One-time password (if 2FA is enabled)
+
+Verify you're logged in:
+```bash
+npm whoami
+```
+
+### 5. Build the Project
+
+```bash
+npm run build
+```
+
+Ensure `dist/` folder is up-to-date and contains all compiled files.
+
+### 6. Verify Package Before Publishing
+
+Check what files will be included:
+
+```bash
+npm pack --dry-run
+```
+
+This shows you exactly what will be published without actually publishing.
+
+### 7. Test the Package Locally
+
+Create a test installation from the packed tarball (this respects `.npmignore` and simulates the real publish):
+
+```bash
+# In your project directory, create a tarball
+cd /path/to/audio-transcription-mcp
+npm pack
+
+# This creates audio-transcription-mcp-0.1.0.tgz (or similar)
+# Now test install it in another directory
+mkdir /tmp/test-npm-install
+cd /tmp/test-npm-install
+npm init -y
+npm install /path/to/audio-transcription-mcp/audio-transcription-mcp-*.tgz
+
+# Test the CLI commands
+npx audio-transcription-mcp --help
+```
+
+### 8. Publish to NPM
+
+#### First Time Publishing
+
+```bash
+# Make sure you're in the project directory
+cd /path/to/audio-transcription-mcp
+
+# Publish
+npm publish
+```
+
+If you want to publish a scoped package (e.g., `@pmerwin/audio-transcription-mcp`):
+
+```bash
+# Update package.json name to "@pmerwin/audio-transcription-mcp"
+npm publish --access public
+```
+
+**Note**: Scoped packages are private by default, so you need `--access public` to make them public.
+
+#### Verify Publication
+
+1. Go to https://www.npmjs.com/package/audio-transcription-mcp
+2. Verify package details, README, and version
+
+### 9. Test Installation from NPM
+
+In a clean environment:
+
+```bash
+# Global installation
+npm install -g audio-transcription-mcp
+
+# Verify commands
+which audio-transcription-mcp
+audio-transcription-mcp --help
+
+# Test MCP server
+audio-transcription-mcp
+```
+
+### 10. Publish Updates
+
+When you have bug fixes or new features:
+
+#### For Patch Releases (0.1.0 → 0.1.1)
+
+```bash
+# Update version
+npm version patch
+
+# This automatically:
+# - Updates package.json
+# - Creates a git commit
+# - Creates a git tag
+
+# Push to GitHub
+git push origin main --tags
+
+# Publish to NPM
+npm publish
+```
+
+#### For Minor Releases (0.1.0 → 0.2.0)
+
+```bash
+npm version minor
+git push origin main --tags
+npm publish
+```
+
+#### For Major Releases (0.1.0 → 1.0.0)
+
+```bash
+npm version major
+git push origin main --tags
+npm publish
+```
+
+### 11. Deprecate or Unpublish (if needed)
+
+#### Deprecate a Version
+
+```bash
+npm deprecate audio-transcription-mcp@0.1.0 "Please upgrade to 0.2.0"
+```
+
+#### Unpublish (within 72 hours of publishing)
+
+```bash
+npm unpublish audio-transcription-mcp@0.1.0
+```
+
+**Warning**: Unpublishing is permanent and discouraged. Use deprecation instead.
+
+### NPM vs GitHub Installation
+
+After publishing to NPM, users have two installation options:
+
+**From NPM (Recommended)**:
+```bash
+npm install -g audio-transcription-mcp
+```
+
+**From GitHub**:
+```bash
+npm install -g git+https://github.com/pmerwin/audio-transcription-mcp.git
+```
+
+Update your README to show both methods.
+
+### NPM Publishing Checklist
+
+- [ ] `package.json` has correct metadata (name, version, description, keywords, author, license, repository)
+- [ ] `.npmignore` created to exclude unnecessary files
+- [ ] NPM account created and verified
+- [ ] Logged in via `npm login`
+- [ ] Project built successfully (`npm run build`)
+- [ ] Package tested locally with `npm pack --dry-run`
+- [ ] Test installation works (`npm install` from tarball)
+- [ ] All tests passing (`npm test`)
+- [ ] README.md is comprehensive
+- [ ] LICENSE file exists
+- [ ] CHANGELOG.md updated
+- [ ] Ready to run `npm publish`
+
+### Common NPM Publishing Issues
+
+**Issue**: Package name already taken
+**Solution**: Choose a different name or use a scoped package (`@username/package-name`)
+
+**Issue**: "You must verify your email"
+**Solution**: Check your email and verify your NPM account
+
+**Issue**: "You do not have permission to publish"
+**Solution**: Check you're logged in with `npm whoami` and have the right permissions
+
+**Issue**: Wrong files published
+**Solution**: Use `.npmignore` and verify with `npm pack --dry-run`
+
+### NPM Package Stats
+
+After publishing, you can monitor your package:
+- **Downloads**: https://www.npmjs.com/package/audio-transcription-mcp
+- **npm trends**: https://npmtrends.com/audio-transcription-mcp
+- **Package Phobia** (size): https://packagephobia.com/result?p=audio-transcription-mcp
 
 ## Making it Discoverable
 
